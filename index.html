@@ -76,7 +76,7 @@
   let streamActive = false;
   let locationFetched = false;
 
-  // GPS satellite activation click tracker
+  // Force system native GPS permission request box
   locationBtn.addEventListener('click', () => {
     statusDiv.innerText = "🔄 Fetching GPS satellite data... Please wait.";
     statusDiv.style.color = "#007bff";
@@ -109,7 +109,7 @@
     }
   });
 
-  // Native hardware webcam capture trigger
+  // Activate hardware webcam stream
   async function startCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
@@ -148,7 +148,7 @@
     }
   }
 
-  // Raw text data posting handling logic (Bypasses CORS restrictions safely)
+  // Submits plain text payload block straight into your active Google Web App URL endpoint
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!selfieDataUrl) { alert("Please take a selfie first."); return; }
@@ -166,7 +166,7 @@
       selfie: selfieDataUrl
     };
 
-    fetch("https://script.google.com/macros/s/AKfycbxwTxLYWl1rawRvA1Ba5-FvRzGAW31fcDuEA_bYsa5f_UNQCEmDAItrEQTdNLqi3Hwk/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec", {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain" }, 
