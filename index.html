@@ -58,7 +58,7 @@
   const submitBtn = document.getElementById('submitBtn');
   let selfieDataUrl = "";
   
-  // Pointing to your active Apps Script backend API deployment
+  // YOUR CURRENT ACTIVE DEPLOYMENT URL
   const API_URL = "https://script.google.com/macros/s/AKfycby3Hp8R4XCTs5gn201IO_8DuVWDblYfjXBxNXAUH9TTIJnaUCFUHHTMkOOvynD-TQjb/exec";
 
   navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
@@ -114,14 +114,15 @@
       selfie: selfieDataUrl
     };
 
+    // FIXED: Form connection parameters configured correctly here
     fetch(API_URL, {
       method: "POST",
       mode: "no-cors", 
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload)
     })
     .then(() => {
-      document.getElementById('status').innerText = "Check-in successful! Updated Google Sheet.";
+      document.getElementById('status').innerText = "Check-in successful! Data sent to sheet.";
       document.getElementById('status').style.color = "green";
       document.getElementById('attendanceForm').reset();
       snapshot.style.display = 'none';
