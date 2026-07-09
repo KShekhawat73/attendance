@@ -15,7 +15,7 @@
     #video { width: 100%; height: auto; aspect-ratio: 4/3; background: #000; margin-top: 5px; border-radius: 6px; object-fit: cover; }
     #canvas { display: none; }
     #snapshot { width: 100%; height: auto; aspect-ratio: 4/3; margin-top: 5px; display: none; border-radius: 6px; object-fit: cover; }
-    .status { text-align: center; font-weight: bold; margin-top: 15px; font-size: 0.95rem; }
+    .status { text-align: center; font-weight: bold; margin-top: 15px; font-size: 0.95rem; color: #dc3545; }
     .location-box { display: flex; gap: 10px; margin-top: 5px; }
     .location-box input { background-color: #e9ecef; color: #495057; }
 
@@ -28,6 +28,11 @@
 
 <div class="container" id="mainContainer">
   <h2>Store Check-In</h2>
+  
+  <!-- Location Fetch karne ke liye Force Button -->
+  <button type="button" id="locationBtn" style="background-color: #ffc107; color: #000; margin-bottom: 10px;">📍 Step 1: Verify Live GPS Location</button>
+  <div id="status" class="status">⚠️ Awaiting Location. Please click the orange button above first.</div>
+
   <form id="attendanceForm">
     <label>Manager Name</label>
     <input type="text" id="managerName" required>
@@ -37,28 +42,27 @@
 
     <label>Selfie</label>
     <video id="video" autoplay playsinline muted></video>
-    <button type="button" id="captureBtn" style="background-color: #007bff; margin-top: 8px; padding: 12px;">Activate & Capture Camera</button>
+    <button type="button" id="captureBtn" style="background-color: #007bff; margin-top: 8px; padding: 12px;">Step 2: Activate & Capture Camera</button>
     <canvas id="canvas"></canvas>
     <img id="snapshot" alt="Selfie preview">
 
     <label>Remarks</label>
     <textarea id="remarks" rows="2"></textarea>
 
-    <label>Your Live Location</label>
+    <label>Your Live Location Data</label>
     <div class="location-box">
       <input type="text" id="latitude" placeholder="Lat" readonly required>
       <input type="text" id="longitude" placeholder="Lng" readonly required>
     </div>
 
-    <button type="submit" id="submitBtn" disabled>Awaiting Location...</button>
+    <button type="submit" id="submitBtn" style="margin-top: 25px;" disabled>Fill Details & Verify Location First</button>
   </form>
-  <div id="status" class="status"></div>
 </div>
 
 <div id="successOverlay">
   <div class="success-icon">🎉</div>
   <div class="success-title">Submission Successful!</div>
-  <p>Your attendance has been marked.</p>
+  <p>Your attendance & live coordinates have been marked.</p>
 </div>
 
 <script>
@@ -66,9 +70,45 @@
   const canvas = document.getElementById('canvas');
   const snapshot = document.getElementById('snapshot');
   const captureBtn = document.getElementById('captureBtn');
+  const locationBtn = document.getElementById('locationBtn');
   const submitBtn = document.getElementById('submitBtn');
+  const statusDiv = document.getElementById('status');
   let selfieDataUrl = "";
   let streamActive = false;
+  let locationFetched = false;
+
+  // Manual Click handler jo browser ko popup dikhane ke liye force karega
+  locationBtn.addEventListener('click', () => {
+    statusDiv.innerText = "🔄 Fetching GPS satellite data... Please wait.";
+    statusDiv.style.color = "#007bff";
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
+          document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+          
+          locationFetched = true;
+          statusDiv.innerText = "✅ Location Locked Successfully!";
+          statusDiv.style.color = "#28a745";
+          locationBtn.style.background = "#28a745";
+          locationBtn.style.color = "#fff";
+          locationBtn.innerText = "✅ GPS Location Verified";
+          
+          checkFormReady();
+        },
+        (err) => {
+          console.error(err);
+          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS location and allow browser permission.";
+          statusDiv.style.color = "#dc3545";
+          alert("Location Permission Required! Phone Settings me jaakar Chrome/Safari browser ke liye Location service ko 'Allow' karein.");
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    } else {
+      statusDiv.innerText = "❌ Your mobile browser does not support GPS.";
+    }
+  });
 
   async function startCamera() {
     try {
@@ -78,24 +118,9 @@
       captureBtn.textContent = "Take Photo";
       captureBtn.style.background = "#dc3545";
     } catch (err) {
-      alert("Please allow camera access in browser settings.");
+      alert("Please allow camera access in browser popups.");
     }
   }
-
-  function initLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
-        document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit Presentation";
-      }, (err) => {
-        document.getElementById('status').innerText = "⚠️ Please enable GPS/Location access.";
-      }, { enableHighAccuracy: true });
-    }
-  }
-
-  window.onload = initLocation;
 
   captureBtn.addEventListener('click', () => {
     if (!streamActive) { startCamera(); } else {
@@ -111,15 +136,25 @@
       captureBtn.style.background = "#007bff";
       streamActive = false;
       if(video.srcObject) video.srcObject.getTracks().forEach(track => track.stop());
+      checkFormReady();
     }
   });
+
+  function checkFormReady() {
+    if (locationFetched) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit Presentation";
+      submitBtn.style.background = "#28a745";
+    }
+  }
 
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!selfieDataUrl) { alert("Please take a selfie first."); return; }
+    if (!locationFetched) { alert("Please click Step 1 to verify location first."); return; }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "Submitting...";
+    submitBtn.textContent = "Submitting Data...";
 
     const payload = {
       managerName: document.getElementById('managerName').value,
@@ -130,7 +165,6 @@
       selfie: selfieDataUrl
     };
 
-    // Yahan aapka wahi Google Script URL bina kisi redirect ke data backend me bhejegha
     fetch("https://script.google.com/macros/s/AKfycbxwTxLYWl1rawRvA1Ba5-FvRzGAW31fcDuEA_bYsa5f_UNQCEmDAItrEQTdNLqi3Hwk/exec", {
       method: "POST",
       mode: "no-cors",
@@ -139,7 +173,7 @@
     }).then(() => {
       document.getElementById('mainContainer').style.display = 'none';
       document.getElementById('successOverlay').style.display = 'flex';
-    }).catch(err => alert("Error: " + err));
+    }).catch(err => alert("Submission Error: " + err));
   });
 </script>
 
