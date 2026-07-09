@@ -76,7 +76,7 @@
   let streamActive = false;
   let locationFetched = false;
 
-  // Force system native GPS permission request box
+  // Native GPS Trigger System
   locationBtn.addEventListener('click', () => {
     statusDiv.innerText = "🔄 Fetching GPS satellite data... Please wait.";
     statusDiv.style.color = "#007bff";
@@ -148,7 +148,7 @@
     }
   }
 
-  // Submits plain text payload block straight into your active Google Web App URL endpoint
+  // Safe parameters submission network pipeline (CORS Lock Free)
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!selfieDataUrl) { alert("Please take a selfie first."); return; }
@@ -157,20 +157,20 @@
     submitBtn.disabled = true;
     submitBtn.textContent = "Submitting Data...";
 
-    const payload = {
-      managerName: document.getElementById('managerName').value,
-      storeName: document.getElementById('storeName').value,
-      remarks: document.getElementById('remarks').value,
-      latitude: document.getElementById('latitude').value,
-      longitude: document.getElementById('longitude').value,
-      selfie: selfieDataUrl
-    };
+    // Params mapping jo Google Apps Script native read kar sake
+    const formData = new URLSearchParams();
+    formData.append('managerName', document.getElementById('managerName').value);
+    formData.append('storeName', document.getElementById('storeName').value);
+    formData.append('remarks', document.getElementById('remarks').value);
+    formData.append('latitude', document.getElementById('latitude').value);
+    formData.append('longitude', document.getElementById('longitude').value);
+    formData.append('selfie', selfieDataUrl);
 
     fetch("https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec", {
       method: "POST",
       mode: "no-cors",
-      headers: { "Content-Type": "text/plain" }, 
-      body: JSON.stringify(payload)
+      headers: { "Content-Type": "application/x-www-form-urlencoded" }, 
+      body: formData.toString()
     }).then(() => {
       document.getElementById('mainContainer').style.display = 'none';
       document.getElementById('successOverlay').style.display = 'flex';
