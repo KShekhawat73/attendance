@@ -29,7 +29,6 @@
 <div class="container" id="mainContainer">
   <h2>Store Check-In</h2>
   
-  <!-- Location Fetch karne ke liye Force Button -->
   <button type="button" id="locationBtn" style="background-color: #ffc107; color: #000; margin-bottom: 10px;">📍 Step 1: Verify Live GPS Location</button>
   <div id="status" class="status">⚠️ Awaiting Location. Please click the orange button above first.</div>
 
@@ -62,7 +61,7 @@
 <div id="successOverlay">
   <div class="success-icon">🎉</div>
   <div class="success-title">Submission Successful!</div>
-  <p>Your attendance & live coordinates have been marked.</p>
+  <p>Your attendance & live coordinates have been marked successfully.</p>
 </div>
 
 <script>
@@ -77,7 +76,7 @@
   let streamActive = false;
   let locationFetched = false;
 
-  // Manual Click handler jo browser ko popup dikhane ke liye force karega
+  // GPS satellite activation click tracker
   locationBtn.addEventListener('click', () => {
     statusDiv.innerText = "🔄 Fetching GPS satellite data... Please wait.";
     statusDiv.style.color = "#007bff";
@@ -110,6 +109,7 @@
     }
   });
 
+  // Native hardware webcam capture trigger
   async function startCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
@@ -148,6 +148,7 @@
     }
   }
 
+  // Raw text data posting handling logic (Bypasses CORS restrictions safely)
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!selfieDataUrl) { alert("Please take a selfie first."); return; }
@@ -168,12 +169,15 @@
     fetch("https://script.google.com/macros/s/AKfycbxwTxLYWl1rawRvA1Ba5-FvRzGAW31fcDuEA_bYsa5f_UNQCEmDAItrEQTdNLqi3Hwk/exec", {
       method: "POST",
       mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" }, 
       body: JSON.stringify(payload)
     }).then(() => {
       document.getElementById('mainContainer').style.display = 'none';
       document.getElementById('successOverlay').style.display = 'flex';
-    }).catch(err => alert("Submission Error: " + err));
+    }).catch(err => {
+      alert("Submission Error: " + err);
+      submitBtn.disabled = false;
+    });
   });
 </script>
 
