@@ -1,143 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Store Attendance Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opening Attendance Portal...</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
-    .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-    h2 { text-align: center; color: #007bff; }
-    label { font-weight: bold; display: block; margin-top: 15px; }
-    input, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    button { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 20px; }
-    button:disabled { background-color: #cccccc; }
-    #video { width: 100%; max-height: 300px; background: #000; margin-top: 5px; border-radius: 4px; }
-    #canvas { display: none; }
-    #snapshot { width: 100%; margin-top: 5px; display: none; border-radius: 4px; }
-    .status { text-align: center; font-weight: bold; margin-top: 15px; }
-    .location-box { display: flex; gap: 10px; margin-top: 5px; }
-    .location-box input { background-color: #e9ecef; color: #495057; cursor: not-allowed; }
+    body { font-family: Arial, sans-serif; text-align: center; padding-top: 60px; background: #f4f4f9; color: #333; }
+    .loader { border: 5px solid #f3f3f3; border-top: 5px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h2>Store Check-In</h2>
-  <form id="attendanceForm">
-    <label>Manager Name</label>
-    <input type="text" id="managerName" required>
+  <h3>Connecting to SIVMOR Attendance Portal...</h3>
+  <div class="loader"></div>
+  <p>Please wait while we establish a secure mobile connection.</p>
 
-    <label>Store Name</label>
-    <input type="text" id="storeName" required>
-
-    <label>Selfie</label>
-    <video id="video" autoplay playsinline></video>
-    <button type="button" id="captureBtn" style="background-color: #007bff;">Capture Selfie</button>
-    <canvas id="canvas"></canvas>
-    <img id="snapshot" alt="Selfie preview">
-
-    <label>Remarks</label>
-    <textarea id="remarks" rows="3"></textarea>
-
-    <label>Your Live Location</label>
-    <div class="location-box">
-      <input type="text" id="latitude" placeholder="Latitude" readonly required>
-      <input type="text" id="longitude" placeholder="Longitude" readonly required>
-    </div>
-
-    <button type="submit" id="submitBtn" disabled>Fetching location...</button>
-  </form>
-  <div id="status" class="status"></div>
-</div>
-
-<script>
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const snapshot = document.getElementById('snapshot');
-  const captureBtn = document.getElementById('captureBtn');
-  const submitBtn = document.getElementById('submitBtn');
-  let selfieDataUrl = "";
-  
-  // YOUR CURRENT ACTIVE DEPLOYMENT URL
-  const API_URL = "https://script.google.com/macros/s/AKfycby3Hp8R4XCTs5gn201IO_8DuVWDblYfjXBxNXAUH9TTIJnaUCFUHHTMkOOvynD-TQjb/exec";
-
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-    .then(stream => { video.srcObject = stream; })
-    .catch(err => { alert("Camera access denied or unavailable."); });
-
-  captureBtn.addEventListener('click', () => {
-    const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth / 2; 
-    canvas.height = video.videoHeight / 2;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    selfieDataUrl = canvas.toDataURL('image/jpeg', 0.6);
-    snapshot.src = selfieDataUrl;
-    snapshot.style.display = 'block';
-    video.style.display = 'none';
-    captureBtn.textContent = "Retake Selfie";
-  });
-
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
-        document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit Presentation";
-      },
-      (error) => {
-        document.getElementById('status').innerText = "Location access denied. Please allow GPS permissions.";
-        document.getElementById('status').style.color = "red";
-      },
-      { enableHighAccuracy: true }
-    );
-  }
-
-  document.getElementById('attendanceForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    if (!selfieDataUrl) {
-      alert("Please take a selfie first.");
-      return;
-    }
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Submitting...";
-    document.getElementById('status').innerText = "Uploading data...";
-
-    const payload = {
-      managerName: document.getElementById('managerName').value,
-      storeName: document.getElementById('storeName').value,
-      remarks: document.getElementById('remarks').value,
-      latitude: document.getElementById('latitude').value,
-      longitude: document.getElementById('longitude').value,
-      selfie: selfieDataUrl
+  <script>
+    window.onload = function() {
+      // Yeh aapka naya Apps Script URL hai jo mobile session ko bypass karega
+      var targetUrl = "https://script.google.com/macros/s/AKfycbxwTxLYWl1rawRvA1Ba5-FvRzGAW31fcDuEA_bYsa5f_UNQCEmDAItrEQTdNLqi3Hwk/exec?authuser=0";
+      setTimeout(function() {
+        window.location.replace(targetUrl);
+      }, 200);
     };
-
-    // FIXED: Form connection parameters configured correctly here
-    fetch(API_URL, {
-      method: "POST",
-      mode: "no-cors", 
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    })
-    .then(() => {
-      document.getElementById('status').innerText = "Check-in successful! Data sent to sheet.";
-      document.getElementById('status').style.color = "green";
-      document.getElementById('attendanceForm').reset();
-      snapshot.style.display = 'none';
-      video.style.display = 'block';
-      selfieDataUrl = "";
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit Presentation";
-    })
-    .catch(err => {
-      document.getElementById('status').innerText = "Submission Error. Please try again.";
-      document.getElementById('status').style.color = "red";
-      submitBtn.disabled = false;
-    });
-  });
-</script>
+  </script>
 
 </body>
 </html>
