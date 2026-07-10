@@ -72,25 +72,35 @@
   let locationFetched = false;
   let rawMappings = [];
 
-  // 🔄 CACHE BUSTER DYNAMIC LOAD: lists.js ko browser memory se bachakar fresh load karne ke liye
   function loadListsDynamic() {
     const script = document.createElement('script');
-    script.src = "lists.js?v=" + new Date().getTime(); // Har millisecond par naya version ID banega
+    script.src = "lists.js?v=" + new Date().getTime();
     script.onload = () => {
       if (typeof portalLists !== 'undefined') {
-        const totalRows = Math.max(portalLists.stores.length, portalLists.managers.length);
+        // Safe arrays backup
+        const storesArr = portalLists.stores || [];
+        const managersArr = portalLists.managers || [];
+        const totalRows = Math.max(storesArr.length, managersArr.length);
         
         for(let i = 0; i < totalRows; i++) {
-          rawMappings.push({
-            store: portalLists.stores[i] || "",
-            manager: portalLists.managers[i] || ""
-          });
+          let sVal = storesArr[i] ? storesArr[i].toString().trim() : "";
+          let mVal = managersArr[i] ? managersArr[i].toString().trim() : "";
+          
+          if (sVal || mVal) {
+            rawMappings.push({ store: sVal, manager: mVal });
+          }
         }
 
-        // Unique Managers nikalna aur unhe A-Z sort karna
-        const uniqueManagers = [...new Set(rawMappings.map(item => item.manager))].filter(Boolean);
-        uniqueManagers.sort((a, b) => a.localeCompare(undefined, {sensitivity: 'base'}));
+        // 🛠️ STRONG A-Z SORTING BLOCK:
+        // 1. Sirf unhi namon ko lena jo blank nahi hain
+        let uniqueManagers = rawMappings.map(item => item.manager).filter(name => name && name.length > 0);
+        // 2. Duplicate entries ko hatana
+        uniqueManagers = [...new Set(uniqueManagers)];
+        // 3. Poori list ko A-Z order mein strict sort karna
+        uniqueManagers.sort((a, b) => a.localeCompare(undefined, { sensitivity: 'base', numeric: true }));
         
+        // Dropdown populate karna
+        managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
         uniqueManagers.forEach(name => {
           managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
         });
@@ -101,7 +111,6 @@
     document.body.appendChild(script);
   }
 
-  // Page open hote hi script dynamic trigger hogi
   window.addEventListener('DOMContentLoaded', loadListsDynamic);
 
   // Alignment Logic
@@ -116,7 +125,7 @@
     const matchedStores = rawMappings
       .filter(item => item.manager === selectedManager)
       .map(item => item.store)
-      .filter(Boolean);
+      .filter(store => store && store.length > 0);
 
     storeSelect.innerHTML = '';
     if (matchedStores.length > 0) {
