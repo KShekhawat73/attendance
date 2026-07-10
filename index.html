@@ -60,8 +60,6 @@
   </div>
 </div>
 
-<script src="lists.js"></script>
-
 <script>
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec";
 
@@ -74,35 +72,41 @@
   let locationFetched = false;
   let rawMappings = [];
 
-  // Window load hote hi list ready karna aur A-Z sort karna
-  window.addEventListener('DOMContentLoaded', () => {
-    if (typeof portalLists !== 'undefined') {
-      const totalRows = Math.max(portalLists.stores.length, portalLists.managers.length);
-      
-      for(let i = 0; i < totalRows; i++) {
-        rawMappings.push({
-          store: portalLists.stores[i] || "",
-          manager: portalLists.managers[i] || ""
+  // 🔄 CACHE BUSTER DYNAMIC LOAD: lists.js ko browser memory se bachakar fresh load karne ke liye
+  function loadListsDynamic() {
+    const script = document.createElement('script');
+    script.src = "lists.js?v=" + new Date().getTime(); // Har millisecond par naya version ID banega
+    script.onload = () => {
+      if (typeof portalLists !== 'undefined') {
+        const totalRows = Math.max(portalLists.stores.length, portalLists.managers.length);
+        
+        for(let i = 0; i < totalRows; i++) {
+          rawMappings.push({
+            store: portalLists.stores[i] || "",
+            manager: portalLists.managers[i] || ""
+          });
+        }
+
+        // Unique Managers nikalna aur unhe A-Z sort karna
+        const uniqueManagers = [...new Set(rawMappings.map(item => item.manager))].filter(Boolean);
+        uniqueManagers.sort((a, b) => a.localeCompare(undefined, {sensitivity: 'base'}));
+        
+        uniqueManagers.forEach(name => {
+          managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
         });
+      } else {
+        statusDiv.innerText = "❌ List loading failed.";
       }
+    };
+    document.body.appendChild(script);
+  }
 
-      // 1. Unique Managers nikalna aur unhe A-Z alphabetical order mein sort karna
-      const uniqueManagers = [...new Set(rawMappings.map(item => item.manager))].filter(Boolean);
-      uniqueManagers.sort((a, b) => a.localeCompare(undefined, {sensitivity: 'base'}));
-      
-      // Sorted list ko dropdown mein append karna
-      uniqueManagers.forEach(name => {
-        managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
-      });
-    } else {
-      statusDiv.innerText = "❌ List loading failed. Check lists.js file.";
-    }
-  });
+  // Page open hote hi script dynamic trigger hogi
+  window.addEventListener('DOMContentLoaded', loadListsDynamic);
 
-  // Alignment Logic: Manager chunne par uska assigned store show karna
+  // Alignment Logic
   managerSelect.addEventListener('change', () => {
     const selectedManager = managerSelect.value;
-    
     if (!selectedManager) {
       storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
       storeSelect.disabled = true;
@@ -115,7 +119,6 @@
       .filter(Boolean);
 
     storeSelect.innerHTML = '';
-    
     if (matchedStores.length > 0) {
       matchedStores.forEach(store => {
         storeSelect.innerHTML += `<option value="${store}">${store}</option>`;
@@ -148,7 +151,7 @@
           checkFormReady();
         },
         (err) => {
-          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS.";
+          statusDiv.innerText = "❌ GPS Error!";
           alert("Location Permission Blocked!");
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -171,8 +174,6 @@
   // Form Submission
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    if (!locationFetched) { alert("Please verify location first."); return; }
-    
     submitBtn.disabled = true;
     submitBtn.textContent = "Submitting Data... ⏳";
 
@@ -194,7 +195,6 @@
     }).catch(err => {
       alert("Submission Error: " + err);
       submitBtn.disabled = false;
-      submitBtn.textContent = "Submit Attendance 🚀";
     });
   });
 </script>
