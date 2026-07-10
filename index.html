@@ -8,8 +8,7 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #333; padding: 20px; width: 100vw; min-height: 100vh; display: block; overflow-x: hidden; }
     .container { width: 100%; max-width: 450px; margin: 30px auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(0); opacity: 0; animation: fadeInUp 0.6s ease forwards; }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    h2 { text-align: center; color: #007bff; font-size: 1.6rem; margin-bottom: 5px; font-weight: 700; position: relative; }
-    .subtitle { text-align: center; color: #6c757d; font-size: 0.85rem; margin-bottom: 20px; }
+    h2 { text-align: center; color: #007bff; font-size: 1.6rem; margin-bottom: 20px; font-weight: 700; position: relative; }
     label { font-weight: 600; display: block; margin-top: 18px; font-size: 0.9rem; color: #495057; }
     input, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 1rem; background-color: #fff; }
     button { width: 100%; padding: 14px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -28,7 +27,6 @@
 
 <div class="container" id="mainContainer">
   <h2>Store Check-In</h2>
-  <div class="subtitle">(Selfie Verification Disabled)</div>
   
   <button type="button" id="locationBtn">📍 Step 1: Verify Live GPS Location</button>
   <div id="status" class="status">⚠️ Awaiting Location. Please click the orange button above first.</div>
@@ -60,7 +58,6 @@
 
 <script>
   // ⚠️ APPS SCRIPT WEB APP URL HERE
-  // Naya deployed Web App URL niche wale double quotes "" ke andar paste karein:
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec";
 
   const locationBtn = document.getElementById('locationBtn');
@@ -68,7 +65,7 @@
   const statusDiv = document.getElementById('status');
   let locationFetched = false;
 
-  // 1. GPS Tracking Function
+  // 1. Fetch Location
   locationBtn.addEventListener('click', () => {
     statusDiv.innerText = "🔄 Fetching GPS satellite data... Please wait.";
     if (navigator.geolocation) {
@@ -98,7 +95,7 @@
     }
   });
 
-  // 2. Submit Button Unlocker
+  // 2. Unlock Button
   function checkFormReady() {
     if (locationFetched) {
       submitBtn.disabled = false;
@@ -106,7 +103,7 @@
     }
   }
 
-  // 3. Form Submission Handling
+  // 3. Form Submit Pipeline
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!locationFetched) { alert("Please verify location first."); return; }
@@ -121,7 +118,6 @@
     formData.append('latitude', document.getElementById('latitude').value);
     formData.append('longitude', document.getElementById('longitude').value);
 
-    // Data sending pipeline
     fetch(WEB_APP_URL, {
       method: "POST",
       mode: "no-cors",
