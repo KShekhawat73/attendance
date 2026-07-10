@@ -29,17 +29,17 @@
   <h2>Store Check-In</h2>
   
   <button type="button" id="locationBtn">📍 Step 1: Verify Live GPS Location</button>
-  <div id="status" class="status">🔄 Loading portal data & lists... Please wait.</div>
+  <div id="status" class="status">⚠️ Awaiting Location. Please click the orange button above first.</div>
 
   <form id="attendanceForm">
     <label>Manager Name</label>
-    <select id="managerName" required disabled>
-      <option value="">-- Loading Names --</option>
+    <select id="managerName" required>
+      <option value="">-- Select Your Name --</option>
     </select>
 
     <label>Store Name</label>
-    <select id="storeName" required disabled>
-      <option value="">-- Loading Stores --</option>
+    <select id="storeName" required>
+      <option value="">-- Select Store Branch --</option>
     </select>
 
     <label>Remarks</label>
@@ -60,8 +60,10 @@
   </div>
 </div>
 
+<script src="lists.js"></script>
+
 <script>
-  // ⚠️ APPS SCRIPT WEB APP URL
+  // ⚠️ APPS SCRIPT WEB APP URL HERE (Sirf data submit karne ke liye)
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec";
 
   const locationBtn = document.getElementById('locationBtn');
@@ -71,39 +73,25 @@
   const storeSelect = document.getElementById('storeName');
   
   let locationFetched = false;
-  let listsLoaded = false;
 
-  // Page khulte hi Google Sheet se live Dropdown lists fetch karna
+  // Window load hote hi lists.js ke variables se dropdown populate karna (Instant!)
   window.addEventListener('DOMContentLoaded', () => {
-    fetch(`${WEB_APP_URL}?action=getLists`)
-      .then(res => res.json())
-      .then(data => {
-        // Manager Names List populate karna
-        managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
-        data.managers.forEach(name => {
-          if(name) managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
-        });
-        managerSelect.disabled = false;
-
-        // Store Names List populate karna
-        storeSelect.innerHTML = '<option value="">-- Select Store Branch --</option>';
-        data.stores.forEach(store => {
-          if(store) storeSelect.innerHTML += `<option value="${store}">${store}</option>`;
-        });
-        storeSelect.disabled = false;
-
-        listsLoaded = true;
-        statusDiv.innerText = "⚠️ Awaiting Location. Please click the orange button above first.";
-      })
-      .catch(err => {
-        statusDiv.innerText = "❌ Error loading lists. Please refresh page.";
-        console.error(err);
+    if (typeof portalLists !== 'undefined') {
+      // Managers Populate karein
+      portalLists.managers.forEach(name => {
+        if(name) managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
       });
+      // Stores Populate karein
+      portalLists.stores.forEach(store => {
+        if(store) storeSelect.innerHTML += `<option value="${store}">${store}</option>`;
+      });
+    } else {
+      statusDiv.innerText = "❌ List loading failed. Check lists.js file.";
+    }
   });
 
   // GPS Tracking
   locationBtn.addEventListener('click', () => {
-    if(!listsLoaded) { alert("Please wait for lists to load first."); return; }
     statusDiv.innerText = "🔄 Fetching GPS satellite data... Please wait.";
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -122,7 +110,7 @@
           checkFormReady();
         },
         (err) => {
-          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS/Location services.";
+          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS.";
           alert("Location Permission Blocked!");
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -131,7 +119,7 @@
   });
 
   function checkFormReady() {
-    if (locationFetched && listsLoaded) {
+    if (locationFetched) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Submit Attendance 🚀";
     }
