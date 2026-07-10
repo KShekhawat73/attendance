@@ -51,8 +51,8 @@
     <label>Remarks</label>
     <textarea id="remarks" rows="2" placeholder="Any update or remarks (Optional)"></textarea>
 
-    <input type="hidden" id="latitude" name="latitude" value="">
-    <input type="hidden" id="longitude" name="longitude" value="">
+    <input type="hidden" id="latitude" value="">
+    <input type="hidden" id="longitude" value="">
 
     <button type="submit" id="submitBtn" disabled>Fill Details & Verify Location First</button>
   </form>
@@ -94,8 +94,8 @@
           checkFormReady();
         },
         (err) => {
-          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS location settings.";
-          alert("Location Activation Required! Phone ke dropdown ya settings se GPS/Location services on karein tabhi attendance lock hogi.");
+          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS/Location service settings.";
+          alert("Location Permission Blocked! Please make sure your phone GPS is ON and you allowed browser location permission.");
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
@@ -109,7 +109,7 @@
       streamActive = true;
       captureBtn.textContent = "Capture Photo 📸";
     } catch (err) {
-      alert("Please allow camera access permissions.");
+      alert("Please allow camera access.");
     }
   }
 
@@ -140,30 +140,30 @@
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!selfieDataUrl) { alert("Please take a selfie first."); return; }
-    if (!locationFetched || !document.getElementById('latitude').value) { alert("Please re-verify location coordinates first."); return; }
+    if (!locationFetched) { alert("Please verify location first."); return; }
     
     submitBtn.disabled = true;
     submitBtn.textContent = "Submitting Data... ⏳";
 
-    // Encoded format map strings pipeline validation matching
-    const formParams = new URLSearchParams();
-    formParams.append('managerName', document.getElementById('managerName').value);
-    formParams.append('storeName', document.getElementById('storeName').value);
-    formParams.append('remarks', document.getElementById('remarks').value);
-    formParams.append('latitude', document.getElementById('latitude').value);
-    formParams.append('longitude', document.getElementById('longitude').value);
-    formParams.append('selfie', selfieDataUrl);
+    // Dynamic Parameter Injection using standard POST URL string format
+    const formData = new URLSearchParams();
+    formData.append('managerName', document.getElementById('managerName').value);
+    formData.append('storeName', document.getElementById('storeName').value);
+    formData.append('remarks', document.getElementById('remarks').value);
+    formData.append('latitude', document.getElementById('latitude').value);
+    formData.append('longitude', document.getElementById('longitude').value);
+    formData.append('selfie', selfieDataUrl);
 
     fetch("https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec", {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "application/x-www-form-urlencoded" }, 
-      body: formParams.toString()
+      body: formData.toString()
     }).then(() => {
       document.getElementById('mainContainer').style.display = 'none';
       document.getElementById('successOverlay').style.display = 'flex';
     }).catch(err => {
-      alert("Network Transmit Error: " + err);
+      alert("Submission Error: " + err);
       submitBtn.disabled = false;
     });
   });
