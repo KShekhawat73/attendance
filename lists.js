@@ -1,0 +1,1 @@
+const portalLists = { "stores": [], "managers": [] };
