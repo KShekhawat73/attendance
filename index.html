@@ -94,8 +94,8 @@
           checkFormReady();
         },
         (err) => {
-          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS/Location service settings.";
-          alert("Location Permission Blocked! Please make sure your phone GPS is ON and you allowed browser location permission.");
+          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS/Location services.";
+          alert("Location Permission Blocked! Phone GPS switch check karein.");
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
@@ -145,7 +145,6 @@
     submitBtn.disabled = true;
     submitBtn.textContent = "Submitting Data... ⏳";
 
-    // Dynamic Parameter Injection using standard POST URL string format
     const formData = new URLSearchParams();
     formData.append('managerName', document.getElementById('managerName').value);
     formData.append('storeName', document.getElementById('storeName').value);
