@@ -59,12 +59,16 @@
 </div>
 
 <script>
+  // ⚠️ APPS SCRIPT WEB APP URL HERE
+  // Naya deployed Web App URL niche wale double quotes "" ke andar paste karein:
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec";
+
   const locationBtn = document.getElementById('locationBtn');
   const submitBtn = document.getElementById('submitBtn');
   const statusDiv = document.getElementById('status');
   let locationFetched = false;
 
-  // 1. Geolocation API - GPS Lock karna
+  // 1. GPS Tracking Function
   locationBtn.addEventListener('click', () => {
     statusDiv.innerText = "🔄 Fetching GPS satellite data... Please wait.";
     if (navigator.geolocation) {
@@ -94,7 +98,7 @@
     }
   });
 
-  // 2. Button Activation Check (Sirf GPS location check karega)
+  // 2. Submit Button Unlocker
   function checkFormReady() {
     if (locationFetched) {
       submitBtn.disabled = false;
@@ -102,7 +106,7 @@
     }
   }
 
-  // 3. Form Submission
+  // 3. Form Submission Handling
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!locationFetched) { alert("Please verify location first."); return; }
@@ -116,10 +120,9 @@
     formData.append('remarks', document.getElementById('remarks').value);
     formData.append('latitude', document.getElementById('latitude').value);
     formData.append('longitude', document.getElementById('longitude').value);
-    // Selfie variable ab payload se poori tarah nikal diya hai
 
-    // Aapka Apps Script URL (Ise badalne ki zaroori nahi agar aap purane deployment par hi chala rahe hain)
-    fetch("https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec", {
+    // Data sending pipeline
+    fetch(WEB_APP_URL, {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "application/x-www-form-urlencoded" }, 
