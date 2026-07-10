@@ -51,8 +51,8 @@
     <label>Remarks</label>
     <textarea id="remarks" rows="2" placeholder="Any update or remarks (Optional)"></textarea>
 
-    <input type="hidden" id="latitude">
-    <input type="hidden" id="longitude">
+    <input type="hidden" id="latitude" name="latitude" value="">
+    <input type="hidden" id="longitude" name="longitude" value="">
 
     <button type="submit" id="submitBtn" disabled>Fill Details & Verify Location First</button>
   </form>
@@ -83,8 +83,8 @@
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
-          document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+          document.getElementById('latitude').value = position.coords.latitude;
+          document.getElementById('longitude').value = position.coords.longitude;
           locationFetched = true;
           statusDiv.innerText = "✅ Location Locked Successfully!";
           statusDiv.style.color = "#28a745";
@@ -94,8 +94,8 @@
           checkFormReady();
         },
         (err) => {
-          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS location.";
-          alert("Location Permission Required!");
+          statusDiv.innerText = "❌ GPS Error! Please turn on device GPS location settings.";
+          alert("Location Activation Required! Phone ke dropdown ya settings se GPS/Location services on karein tabhi attendance lock hogi.");
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
@@ -109,7 +109,7 @@
       streamActive = true;
       captureBtn.textContent = "Capture Photo 📸";
     } catch (err) {
-      alert("Please allow camera access.");
+      alert("Please allow camera access permissions.");
     }
   }
 
@@ -119,7 +119,7 @@
       canvas.width = video.videoWidth || 320;
       canvas.height = video.videoHeight || 240;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      selfieDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+      selfieDataUrl = canvas.toDataURL('image/jpeg', 0.5);
       snapshot.src = selfieDataUrl;
       snapshot.style.display = 'block';
       video.style.display = 'none';
@@ -131,7 +131,7 @@
   });
 
   function checkFormReady() {
-    if (locationFetched) {
+    if (locationFetched && selfieDataUrl !== "") {
       submitBtn.disabled = false;
       submitBtn.textContent = "Submit Attendance 🚀";
     }
@@ -140,29 +140,30 @@
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!selfieDataUrl) { alert("Please take a selfie first."); return; }
+    if (!locationFetched || !document.getElementById('latitude').value) { alert("Please re-verify location coordinates first."); return; }
     
     submitBtn.disabled = true;
     submitBtn.textContent = "Submitting Data... ⏳";
 
-    // Plain URLSearchParams format (Standard URL parameter passing)
-    const formData = new URLSearchParams();
-    formData.append('managerName', document.getElementById('managerName').value);
-    formData.append('storeName', document.getElementById('storeName').value);
-    formData.append('remarks', document.getElementById('remarks').value);
-    formData.append('latitude', document.getElementById('latitude').value);
-    formData.append('longitude', document.getElementById('longitude').value);
-    formData.append('selfie', selfieDataUrl);
+    // Encoded format map strings pipeline validation matching
+    const formParams = new URLSearchParams();
+    formParams.append('managerName', document.getElementById('managerName').value);
+    formParams.append('storeName', document.getElementById('storeName').value);
+    formParams.append('remarks', document.getElementById('remarks').value);
+    formParams.append('latitude', document.getElementById('latitude').value);
+    formParams.append('longitude', document.getElementById('longitude').value);
+    formParams.append('selfie', selfieDataUrl);
 
     fetch("https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec", {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "application/x-www-form-urlencoded" }, 
-      body: formData.toString()
+      body: formParams.toString()
     }).then(() => {
       document.getElementById('mainContainer').style.display = 'none';
       document.getElementById('successOverlay').style.display = 'flex';
     }).catch(err => {
-      alert("Error: " + err);
+      alert("Network Transmit Error: " + err);
       submitBtn.disabled = false;
     });
   });
