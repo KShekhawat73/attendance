@@ -38,8 +38,8 @@
     </select>
 
     <label>Store Name</label>
-    <select id="storeName" required>
-      <option value="">-- Select Store Branch --</option>
+    <select id="storeName" required disabled>
+      <option value="">-- Select Manager First --</option>
     </select>
 
     <label>Remarks</label>
@@ -63,7 +63,6 @@
 <script src="lists.js"></script>
 
 <script>
-  // ⚠️ APPS SCRIPT WEB APP URL HERE (Sirf data submit karne ke liye)
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec";
 
   const locationBtn = document.getElementById('locationBtn');
@@ -73,21 +72,60 @@
   const storeSelect = document.getElementById('storeName');
   
   let locationFetched = false;
+  let rawMappings = [];
 
-  // Window load hote hi lists.js ke variables se dropdown populate karna (Instant!)
+  // Window load hote hi list ready karna aur A-Z sort karna
   window.addEventListener('DOMContentLoaded', () => {
     if (typeof portalLists !== 'undefined') {
-      // Managers Populate karein
-      portalLists.managers.forEach(name => {
-        if(name) managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
-      });
-      // Stores Populate karein
-      portalLists.stores.forEach(store => {
-        if(store) storeSelect.innerHTML += `<option value="${store}">${store}</option>`;
+      const totalRows = Math.max(portalLists.stores.length, portalLists.managers.length);
+      
+      for(let i = 0; i < totalRows; i++) {
+        rawMappings.push({
+          store: portalLists.stores[i] || "",
+          manager: portalLists.managers[i] || ""
+        });
+      }
+
+      // 1. Unique Managers nikalna aur unhe A-Z alphabetical order mein sort karna
+      const uniqueManagers = [...new Set(rawMappings.map(item => item.manager))].filter(Boolean);
+      uniqueManagers.sort((a, b) => a.localeCompare(undefined, {sensitivity: 'base'}));
+      
+      // Sorted list ko dropdown mein append karna
+      uniqueManagers.forEach(name => {
+        managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
       });
     } else {
       statusDiv.innerText = "❌ List loading failed. Check lists.js file.";
     }
+  });
+
+  // Alignment Logic: Manager chunne par uska assigned store show karna
+  managerSelect.addEventListener('change', () => {
+    const selectedManager = managerSelect.value;
+    
+    if (!selectedManager) {
+      storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
+      storeSelect.disabled = true;
+      return;
+    }
+
+    const matchedStores = rawMappings
+      .filter(item => item.manager === selectedManager)
+      .map(item => item.store)
+      .filter(Boolean);
+
+    storeSelect.innerHTML = '';
+    
+    if (matchedStores.length > 0) {
+      matchedStores.forEach(store => {
+        storeSelect.innerHTML += `<option value="${store}">${store}</option>`;
+      });
+      storeSelect.disabled = false;
+    } else {
+      storeSelect.innerHTML = '<option value="">No store assigned</option>';
+      storeSelect.disabled = true;
+    }
+    checkFormReady();
   });
 
   // GPS Tracking
@@ -119,11 +157,16 @@
   });
 
   function checkFormReady() {
-    if (locationFetched) {
+    if (locationFetched && managerSelect.value && storeSelect.value) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Submit Attendance 🚀";
+    } else {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Fill Details & Verify Location First";
     }
   }
+
+  storeSelect.addEventListener('change', checkFormReady);
 
   // Form Submission
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
