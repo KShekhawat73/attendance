@@ -10,7 +10,7 @@
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     h2 { text-align: center; color: #007bff; font-size: 1.6rem; margin-bottom: 20px; font-weight: 700; position: relative; }
     label { font-weight: 600; display: block; margin-top: 18px; font-size: 0.9rem; color: #495057; }
-    input, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 1rem; background-color: #fff; }
+    input, select, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 1rem; background-color: #fff; }
     button { width: 100%; padding: 14px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     button:disabled { background-color: #cccccc !important; cursor: not-allowed; }
     #locationBtn { background: linear-gradient(45deg, #ffc107, #ff9800); color: #fff; }
@@ -29,14 +29,18 @@
   <h2>Store Check-In</h2>
   
   <button type="button" id="locationBtn">📍 Step 1: Verify Live GPS Location</button>
-  <div id="status" class="status">⚠️ Awaiting Location. Please click the orange button above first.</div>
+  <div id="status" class="status">🔄 Loading portal data & lists... Please wait.</div>
 
   <form id="attendanceForm">
     <label>Manager Name</label>
-    <input type="text" id="managerName" placeholder="Enter your full name" required>
+    <select id="managerName" required disabled>
+      <option value="">-- Loading Names --</option>
+    </select>
 
     <label>Store Name</label>
-    <input type="text" id="storeName" placeholder="Enter store branch name" required>
+    <select id="storeName" required disabled>
+      <option value="">-- Loading Stores --</option>
+    </select>
 
     <label>Remarks</label>
     <textarea id="remarks" rows="2" placeholder="Any update or remarks (Optional)"></textarea>
@@ -57,16 +61,49 @@
 </div>
 
 <script>
-  // ⚠️ APPS SCRIPT WEB APP URL HERE
+  // ⚠️ APPS SCRIPT WEB APP URL
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec";
 
   const locationBtn = document.getElementById('locationBtn');
   const submitBtn = document.getElementById('submitBtn');
   const statusDiv = document.getElementById('status');
+  const managerSelect = document.getElementById('managerName');
+  const storeSelect = document.getElementById('storeName');
+  
   let locationFetched = false;
+  let listsLoaded = false;
 
-  // 1. Fetch Location
+  // Page khulte hi Google Sheet se live Dropdown lists fetch karna
+  window.addEventListener('DOMContentLoaded', () => {
+    fetch(`${WEB_APP_URL}?action=getLists`)
+      .then(res => res.json())
+      .then(data => {
+        // Manager Names List populate karna
+        managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
+        data.managers.forEach(name => {
+          if(name) managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+        managerSelect.disabled = false;
+
+        // Store Names List populate karna
+        storeSelect.innerHTML = '<option value="">-- Select Store Branch --</option>';
+        data.stores.forEach(store => {
+          if(store) storeSelect.innerHTML += `<option value="${store}">${store}</option>`;
+        });
+        storeSelect.disabled = false;
+
+        listsLoaded = true;
+        statusDiv.innerText = "⚠️ Awaiting Location. Please click the orange button above first.";
+      })
+      .catch(err => {
+        statusDiv.innerText = "❌ Error loading lists. Please refresh page.";
+        console.error(err);
+      });
+  });
+
+  // GPS Tracking
   locationBtn.addEventListener('click', () => {
+    if(!listsLoaded) { alert("Please wait for lists to load first."); return; }
     statusDiv.innerText = "🔄 Fetching GPS satellite data... Please wait.";
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -86,24 +123,21 @@
         },
         (err) => {
           statusDiv.innerText = "❌ GPS Error! Please turn on device GPS/Location services.";
-          alert("Location Permission Blocked! Phone GPS switch check karein.");
+          alert("Location Permission Blocked!");
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
-    } else {
-      statusDiv.innerText = "❌ Geolocation not supported by this browser.";
     }
   });
 
-  // 2. Unlock Button
   function checkFormReady() {
-    if (locationFetched) {
+    if (locationFetched && listsLoaded) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Submit Attendance 🚀";
     }
   }
 
-  // 3. Form Submit Pipeline
+  // Form Submission
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!locationFetched) { alert("Please verify location first."); return; }
@@ -112,8 +146,8 @@
     submitBtn.textContent = "Submitting Data... ⏳";
 
     const formData = new URLSearchParams();
-    formData.append('managerName', document.getElementById('managerName').value);
-    formData.append('storeName', document.getElementById('storeName').value);
+    formData.append('managerName', managerSelect.value);
+    formData.append('storeName', storeSelect.value);
     formData.append('remarks', document.getElementById('remarks').value);
     formData.append('latitude', document.getElementById('latitude').value);
     formData.append('longitude', document.getElementById('longitude').value);
