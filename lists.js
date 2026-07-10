@@ -1,1 +1,1 @@
-const portalLists = {"stores":["CHB","SARDARPURA","PAOTA","KUDI","RATANADA","SURAJ","SUMIT SONI","DILIP"],"managers":["MANOJ KALLA","NARESH","SUMIT MISHRA","KUNDAN DUBEY","KHUSHAL","HO","PALI-2","PALI"]};
+const portalLists = {"stores":["CHB","SARDARPURA","PAOTA","KUDI","RATANADA","HO","PALI-2","PALI"],"managers":["MANOJ KALLA","NARESH","SUMIT MISHRA","KUNDAN DUBEY","KHUSHAL","HO","PALI-2","PALI"]};
