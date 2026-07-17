@@ -11,11 +11,27 @@
     h2 { text-align: center; color: #007bff; font-size: 1.6rem; margin-bottom: 20px; font-weight: 700; position: relative; }
     label { font-weight: 600; display: block; margin-top: 18px; font-size: 0.9rem; color: #495057; }
     input, select, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 1rem; background-color: #fff; }
+    
     button { width: 100%; padding: 14px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     button:disabled { background-color: #cccccc !important; cursor: not-allowed; }
-    #locationBtn { background: linear-gradient(45deg, #ffc107, #ff9800); color: #fff; }
+    
+    /* Button Colors */
+    #locationBtn { background: linear-gradient(45deg, #ffc107, #ff9800); }
+    #cameraBtn { background: linear-gradient(45deg, #17a2b8, #117a8b); margin-top: 15px; }
+    #captureBtn { background: #007bff; padding: 10px; margin-top: 10px; }
+    #retakeBtn { background: #6c757d; padding: 10px; margin-top: 10px; }
     #submitBtn { background: linear-gradient(45deg, #28a745, #218838); margin-top: 25px; }
+    
     .status { text-align: center; font-weight: bold; margin-top: 15px; font-size: 0.95rem; color: #dc3545; padding: 10px; border-radius: 6px; background: rgba(220, 53, 69, 0.1); }
+    
+    /* Camera UI */
+    .camera-box { display: none; margin-top: 15px; text-align: center; border: 2px dashed #dee2e6; padding: 10px; border-radius: 8px; }
+    #videoElement { width: 100%; border-radius: 8px; background: #000; }
+    #photoResult { display: none; margin-top: 15px; text-align: center; }
+    #capturedImage { width: 100%; border-radius: 8px; border: 2px solid #28a745; }
+    
+    .section-title { font-size: 1.1rem; color: #343a40; margin-top: 25px; margin-bottom: -5px; font-weight: 700; border-bottom: 2px solid #f1f3f5; padding-bottom: 5px; }
+
     #successOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; z-index: 9999; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; }
     .success-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 400px; }
     .success-icon-circle { width: 80px; height: 80px; background: #e8f5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #28a745; font-size: 3rem; }
@@ -28,9 +44,26 @@
 <div class="container" id="mainContainer">
   <h2>Store Check-In</h2>
   
-  <button type="button" id="locationBtn">📍 Step 1: Verify Live GPS Location</button>
-  <div id="status" class="status">⚠️ Awaiting Location. Please click the orange button above first.</div>
+  <!-- STEP 1: LOCATION -->
+  <button type="button" id="locationBtn">📍 Step 1: Verify Live GPS</button>
+  <div id="status" class="status">⚠️ Awaiting Location.</div>
 
+  <!-- STEP 2: CAMERA -->
+  <button type="button" id="cameraBtn">📷 Step 2: Take Selfie</button>
+  
+  <div id="cameraBox" class="camera-box">
+    <video id="videoElement" autoplay playsinline></video>
+    <button type="button" id="captureBtn">📸 Click Photo</button>
+  </div>
+
+  <div id="photoResult">
+    <img id="capturedImage" src="" alt="Captured Selfie" />
+    <button type="button" id="retakeBtn">🔄 Retake Photo</button>
+    <input type="hidden" id="photoData" value="">
+  </div>
+
+  <!-- STEP 3: DETAILS -->
+  <div class="section-title">📝 Step 3: Details</div>
   <form id="attendanceForm">
     <label>Manager Name</label>
     <select id="managerName" required>
@@ -48,7 +81,7 @@
     <input type="hidden" id="latitude" value="">
     <input type="hidden" id="longitude" value="">
 
-    <button type="submit" id="submitBtn" disabled>Fill Details & Verify Location First</button>
+    <button type="submit" id="submitBtn" disabled>Complete Steps 1 & 2 First</button>
   </form>
 </div>
 
@@ -56,28 +89,41 @@
   <div class="success-card">
     <div class="success-icon-circle">✓</div>
     <div class="success-title">Success!</div>
-    <p>Your attendance and GPS coordinates have been safely marked.</p>
+    <p>Your attendance, selfie, and GPS have been marked.</p>
   </div>
 </div>
 
 <script>
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec";
 
+  // Elements
   const locationBtn = document.getElementById('locationBtn');
-  const submitBtn = document.getElementById('submitBtn');
   const statusDiv = document.getElementById('status');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const cameraBox = document.getElementById('cameraBox');
+  const videoElement = document.getElementById('videoElement');
+  const captureBtn = document.getElementById('captureBtn');
+  const photoResult = document.getElementById('photoResult');
+  const capturedImage = document.getElementById('capturedImage');
+  const photoData = document.getElementById('photoData');
+  const retakeBtn = document.getElementById('retakeBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  
   const managerSelect = document.getElementById('managerName');
   const storeSelect = document.getElementById('storeName');
   
+  // State variables
   let locationFetched = false;
+  let photoCaptured = false;
   let rawMappings = [];
+  let stream = null;
 
+  // 1. Dynamic Lists Loading
   function loadListsDynamic() {
     const script = document.createElement('script');
     script.src = "lists.js?v=" + new Date().getTime();
     script.onload = () => {
       if (typeof portalLists !== 'undefined') {
-        // Safe arrays backup
         const storesArr = portalLists.stores || [];
         const managersArr = portalLists.managers || [];
         const totalRows = Math.max(storesArr.length, managersArr.length);
@@ -85,40 +131,32 @@
         for(let i = 0; i < totalRows; i++) {
           let sVal = storesArr[i] ? storesArr[i].toString().trim() : "";
           let mVal = managersArr[i] ? managersArr[i].toString().trim() : "";
-          
           if (sVal || mVal) {
             rawMappings.push({ store: sVal, manager: mVal });
           }
         }
 
-        // 🛠️ STRONG A-Z SORTING BLOCK:
-        // 1. Sirf unhi namon ko lena jo blank nahi hain
         let uniqueManagers = rawMappings.map(item => item.manager).filter(name => name && name.length > 0);
-        // 2. Duplicate entries ko hatana
         uniqueManagers = [...new Set(uniqueManagers)];
-        // 3. Poori list ko A-Z order mein strict sort karna
         uniqueManagers.sort((a, b) => a.localeCompare(undefined, { sensitivity: 'base', numeric: true }));
         
-        // Dropdown populate karna
         managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
         uniqueManagers.forEach(name => {
           managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
         });
-      } else {
-        statusDiv.innerText = "❌ List loading failed.";
       }
     };
     document.body.appendChild(script);
   }
-
   window.addEventListener('DOMContentLoaded', loadListsDynamic);
 
-  // Alignment Logic
+  // 2. Dropdown Logic
   managerSelect.addEventListener('change', () => {
     const selectedManager = managerSelect.value;
     if (!selectedManager) {
       storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
       storeSelect.disabled = true;
+      checkFormReady();
       return;
     }
 
@@ -139,10 +177,11 @@
     }
     checkFormReady();
   });
+  storeSelect.addEventListener('change', checkFormReady);
 
-  // GPS Tracking
+  // 3. GPS Tracking (Step 1)
   locationBtn.addEventListener('click', () => {
-    statusDiv.innerText = "🔄 Fetching GPS satellite data... Please wait.";
+    statusDiv.innerText = "🔄 Fetching GPS... Please wait.";
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -150,37 +189,77 @@
           document.getElementById('longitude').value = position.coords.longitude;
           locationFetched = true;
           
-          statusDiv.innerText = "✅ Location Locked Successfully!";
-          statusDiv.style.color = "#28a745";
-          statusDiv.style.background = "rgba(40, 167, 69, 0.1)";
-          
+          statusDiv.style.display = "none";
           locationBtn.style.background = "linear-gradient(45deg, #28a745, #218838)";
-          locationBtn.innerText = "✅ GPS Location Verified";
-          
+          locationBtn.innerText = "✅ Step 1: Location Verified";
           checkFormReady();
         },
         (err) => {
-          statusDiv.innerText = "❌ GPS Error!";
-          alert("Location Permission Blocked!");
+          statusDiv.innerText = "❌ GPS Error! Allow Location.";
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
   });
 
+  // 4. Camera & Selfie (Step 2)
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      videoElement.srcObject = stream;
+      cameraBtn.style.display = 'none';
+      photoResult.style.display = 'none';
+      cameraBox.style.display = 'block';
+    } catch (err) {
+      alert("Camera access denied or unavailable.");
+    }
+  }
+
+  function stopCamera() {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+  }
+
+  cameraBtn.addEventListener('click', startCamera);
+  retakeBtn.addEventListener('click', () => {
+    photoCaptured = false;
+    photoData.value = "";
+    checkFormReady();
+    startCamera();
+  });
+
+  captureBtn.addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    canvas.getContext('2d').drawImage(videoElement, 0, 0);
+    
+    // Compress image to Base64 (0.7 quality)
+    const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+    
+    capturedImage.src = base64Image;
+    photoData.value = base64Image;
+    photoCaptured = true;
+    
+    stopCamera();
+    cameraBox.style.display = 'none';
+    photoResult.style.display = 'block';
+    
+    checkFormReady();
+  });
+
+  // 5. Validation & Submit
   function checkFormReady() {
-    if (locationFetched && managerSelect.value && storeSelect.value) {
+    if (locationFetched && photoCaptured && managerSelect.value && storeSelect.value) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Submit Attendance 🚀";
     } else {
       submitBtn.disabled = true;
-      submitBtn.textContent = "Fill Details & Verify Location First";
+      submitBtn.textContent = "Complete Steps 1 & 2 First";
     }
   }
 
-  storeSelect.addEventListener('change', checkFormReady);
-
-  // Form Submission
   document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     submitBtn.disabled = true;
@@ -192,6 +271,7 @@
     formData.append('remarks', document.getElementById('remarks').value);
     formData.append('latitude', document.getElementById('latitude').value);
     formData.append('longitude', document.getElementById('longitude').value);
+    formData.append('photoBase64', photoData.value); // New Photo Data sent to Google Sheet
 
     fetch(WEB_APP_URL, {
       method: "POST",
