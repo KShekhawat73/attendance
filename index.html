@@ -15,7 +15,6 @@
     button { width: 100%; padding: 14px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     button:disabled { background-color: #cccccc !important; cursor: not-allowed; }
     
-    /* Button Colors */
     #locationBtn { background: linear-gradient(45deg, #ffc107, #ff9800); }
     #cameraBtn { background: linear-gradient(45deg, #17a2b8, #117a8b); margin-top: 15px; }
     #captureBtn { background: #007bff; padding: 10px; margin-top: 10px; }
@@ -24,14 +23,12 @@
     
     .status { text-align: center; font-weight: bold; margin-top: 15px; font-size: 0.95rem; color: #dc3545; padding: 10px; border-radius: 6px; background: rgba(220, 53, 69, 0.1); }
     
-    /* Camera UI */
     .camera-box { display: none; margin-top: 15px; text-align: center; border: 2px dashed #dee2e6; padding: 10px; border-radius: 8px; }
     #videoElement { width: 100%; border-radius: 8px; background: #000; }
     #photoResult { display: none; margin-top: 15px; text-align: center; }
     #capturedImage { width: 100%; border-radius: 8px; border: 2px solid #28a745; }
     
     .section-title { font-size: 1.1rem; color: #343a40; margin-top: 25px; margin-bottom: -5px; font-weight: 700; border-bottom: 2px solid #f1f3f5; padding-bottom: 5px; }
-
     #successOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; z-index: 9999; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; }
     .success-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 400px; }
     .success-icon-circle { width: 80px; height: 80px; background: #e8f5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #28a745; font-size: 3rem; }
@@ -44,11 +41,9 @@
 <div class="container" id="mainContainer">
   <h2>Store Check-In</h2>
   
-  <!-- STEP 1: LOCATION -->
   <button type="button" id="locationBtn">📍 Step 1: Verify Live GPS</button>
   <div id="status" class="status">⚠️ Awaiting Location.</div>
 
-  <!-- STEP 2: CAMERA -->
   <button type="button" id="cameraBtn">📷 Step 2: Take Selfie</button>
   
   <div id="cameraBox" class="camera-box">
@@ -62,17 +57,18 @@
     <input type="hidden" id="photoData" value="">
   </div>
 
-  <!-- STEP 3: DETAILS -->
   <div class="section-title">📝 Step 3: Details</div>
   <form id="attendanceForm">
-    <label>Manager Name</label>
+    
+    <!-- ID added to label so we can hide it -->
+    <label id="managerLabel">Manager Name</label>
     <select id="managerName" required>
       <option value="">-- Select Your Name --</option>
     </select>
 
-    <label>Store Name</label>
+    <label id="storeLabel">Store Name</label>
     <select id="storeName" required disabled>
-      <option value="">-- Select Manager First --</option>
+      <option value="">-- Loading Stores --</option>
     </select>
 
     <label>Remarks</label>
@@ -94,10 +90,14 @@
 </div>
 
 <script>
-  // 👇 Yahan aapka naya URL update kar diya gaya hai 👇
+  // Apka Google Apps Script URL
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrzxW8xqoSQQ7OzSxSvZhJ/exec";
 
-  // Elements
+  // URL parameters padhne ka logic
+  const urlParams = new URLSearchParams(window.location.search);
+  const loggedInUser = urlParams.get('user'); // Ex: ?user=kushal
+  const userAccess = urlParams.get('access'); // Ex: ?access=all
+
   const locationBtn = document.getElementById('locationBtn');
   const statusDiv = document.getElementById('status');
   const cameraBtn = document.getElementById('cameraBtn');
@@ -111,6 +111,7 @@
   const submitBtn = document.getElementById('submitBtn');
   
   const managerSelect = document.getElementById('managerName');
+  const managerLabel = document.getElementById('managerLabel');
   const storeSelect = document.getElementById('storeName');
   
   let locationFetched = false;
@@ -139,18 +140,38 @@
         uniqueManagers = [...new Set(uniqueManagers)];
         uniqueManagers.sort((a, b) => a.localeCompare(undefined, { sensitivity: 'base', numeric: true }));
         
-        managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
-        uniqueManagers.forEach(name => {
-          managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
-        });
+        // 🛠️ MAGIC HAPPENS HERE: Checking Dashboard Login
+        if (loggedInUser && userAccess !== 'all') {
+            // Normal user: Hide name dropdown and label completely
+            managerLabel.style.display = 'none';
+            managerSelect.style.display = 'none';
+            
+            // Auto-select logged-in user in the hidden background
+            managerSelect.innerHTML = `<option value="${loggedInUser}" selected>${loggedInUser}</option>`;
+            updateStoresForManager(loggedInUser);
+
+        } else {
+            // Admin user (access=all) or direct visit: Show full dropdown
+            managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
+            uniqueManagers.forEach(name => {
+                managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
+            });
+
+            // If Admin logged in, pre-select their name but keep dropdown visible
+            if (loggedInUser && userAccess === 'all') {
+                managerSelect.value = loggedInUser;
+                updateStoresForManager(loggedInUser);
+            } else {
+                storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
+            }
+        }
       }
     };
     document.body.appendChild(script);
   }
   window.addEventListener('DOMContentLoaded', loadListsDynamic);
 
-  managerSelect.addEventListener('change', () => {
-    const selectedManager = managerSelect.value;
+  function updateStoresForManager(selectedManager) {
     if (!selectedManager) {
       storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
       storeSelect.disabled = true;
@@ -158,8 +179,9 @@
       return;
     }
 
+    // Match exact name (case-insensitive)
     const matchedStores = rawMappings
-      .filter(item => item.manager === selectedManager)
+      .filter(item => item.manager.toLowerCase() === selectedManager.toLowerCase())
       .map(item => item.store)
       .filter(store => store && store.length > 0);
 
@@ -174,9 +196,13 @@
       storeSelect.disabled = true;
     }
     checkFormReady();
-  });
-  storeSelect.addEventListener('change', checkFormReady);
+  }
 
+  managerSelect.addEventListener('change', () => {
+    updateStoresForManager(managerSelect.value);
+  });
+
+  // GPS & Camera functions (Unchanged)
   locationBtn.addEventListener('click', () => {
     statusDiv.innerText = "🔄 Fetching GPS... Please wait.";
     if (navigator.geolocation) {
@@ -185,15 +211,12 @@
           document.getElementById('latitude').value = position.coords.latitude;
           document.getElementById('longitude').value = position.coords.longitude;
           locationFetched = true;
-          
           statusDiv.style.display = "none";
           locationBtn.style.background = "linear-gradient(45deg, #28a745, #218838)";
           locationBtn.innerText = "✅ Step 1: Location Verified";
           checkFormReady();
         },
-        (err) => {
-          statusDiv.innerText = "❌ GPS Error! Allow Location.";
-        },
+        (err) => { statusDiv.innerText = "❌ GPS Error! Allow Location."; },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
@@ -206,16 +229,10 @@
       cameraBtn.style.display = 'none';
       photoResult.style.display = 'none';
       cameraBox.style.display = 'block';
-    } catch (err) {
-      alert("Camera access denied or unavailable.");
-    }
+    } catch (err) { alert("Camera access denied or unavailable."); }
   }
 
-  function stopCamera() {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-  }
+  function stopCamera() { if (stream) { stream.getTracks().forEach(track => track.stop()); } }
 
   cameraBtn.addEventListener('click', startCamera);
   retakeBtn.addEventListener('click', () => {
@@ -230,17 +247,13 @@
     canvas.width = videoElement.videoWidth;
     canvas.height = videoElement.videoHeight;
     canvas.getContext('2d').drawImage(videoElement, 0, 0);
-    
     const base64Image = canvas.toDataURL('image/jpeg', 0.6); 
-    
     capturedImage.src = base64Image;
     photoData.value = base64Image;
     photoCaptured = true;
-    
     stopCamera();
     cameraBox.style.display = 'none';
     photoResult.style.display = 'block';
-    
     checkFormReady();
   });
 
