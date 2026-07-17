@@ -60,12 +60,12 @@
   <div class="section-title">📝 Step 3: Details</div>
   <form id="attendanceForm">
     
-    <!-- ID added to label so we can hide it -->
     <label id="managerLabel">Manager Name</label>
     <select id="managerName" required>
       <option value="">-- Select Your Name --</option>
     </select>
 
+    <!-- ID added to store label to hide it easily -->
     <label id="storeLabel">Store Name</label>
     <select id="storeName" required disabled>
       <option value="">-- Loading Stores --</option>
@@ -90,13 +90,11 @@
 </div>
 
 <script>
-  // Apka Google Apps Script URL
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrzxW8xqoSQQ7OzSxSvZhJ/exec";
 
-  // URL parameters padhne ka logic
   const urlParams = new URLSearchParams(window.location.search);
-  const loggedInUser = urlParams.get('user'); // Ex: ?user=kushal
-  const userAccess = urlParams.get('access'); // Ex: ?access=all
+  const loggedInUser = urlParams.get('user'); 
+  const userAccess = urlParams.get('access'); 
 
   const locationBtn = document.getElementById('locationBtn');
   const statusDiv = document.getElementById('status');
@@ -112,7 +110,9 @@
   
   const managerSelect = document.getElementById('managerName');
   const managerLabel = document.getElementById('managerLabel');
+  
   const storeSelect = document.getElementById('storeName');
+  const storeLabel = document.getElementById('storeLabel'); // Grab Store Label
   
   let locationFetched = false;
   let photoCaptured = false;
@@ -140,24 +140,25 @@
         uniqueManagers = [...new Set(uniqueManagers)];
         uniqueManagers.sort((a, b) => a.localeCompare(undefined, { sensitivity: 'base', numeric: true }));
         
-        // 🛠️ MAGIC HAPPENS HERE: Checking Dashboard Login
+        // 🛠️ Check Login Access Type
         if (loggedInUser && userAccess !== 'all') {
-            // Normal user: Hide name dropdown and label completely
+            // Normal user: Hide BOTH manager and store dropdowns/labels completely
             managerLabel.style.display = 'none';
             managerSelect.style.display = 'none';
             
-            // Auto-select logged-in user in the hidden background
+            storeLabel.style.display = 'none';   // 🔥 Added Store Label Hide
+            storeSelect.style.display = 'none';  // 🔥 Added Store Select Hide
+            
             managerSelect.innerHTML = `<option value="${loggedInUser}" selected>${loggedInUser}</option>`;
             updateStoresForManager(loggedInUser);
 
         } else {
-            // Admin user (access=all) or direct visit: Show full dropdown
+            // Admin user: Show full dropdowns
             managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
             uniqueManagers.forEach(name => {
                 managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
             });
 
-            // If Admin logged in, pre-select their name but keep dropdown visible
             if (loggedInUser && userAccess === 'all') {
                 managerSelect.value = loggedInUser;
                 updateStoresForManager(loggedInUser);
@@ -179,7 +180,6 @@
       return;
     }
 
-    // Match exact name (case-insensitive)
     const matchedStores = rawMappings
       .filter(item => item.manager.toLowerCase() === selectedManager.toLowerCase())
       .map(item => item.store)
@@ -202,7 +202,6 @@
     updateStoresForManager(managerSelect.value);
   });
 
-  // GPS & Camera functions (Unchanged)
   locationBtn.addEventListener('click', () => {
     statusDiv.innerText = "🔄 Fetching GPS... Please wait.";
     if (navigator.geolocation) {
