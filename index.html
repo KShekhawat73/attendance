@@ -94,8 +94,8 @@
 </div>
 
 <script>
-  // Agar aapne naya Web App deploy kiya hai naye URL ke sath, toh yahan URL update karna mat bhulna.
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec";
+  // 👇 Yahan aapka naya URL update kar diya gaya hai 👇
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrzxW8xqoSQQ7OzSxSvZhJ/exec";
 
   // Elements
   const locationBtn = document.getElementById('locationBtn');
@@ -231,7 +231,7 @@
     canvas.height = videoElement.videoHeight;
     canvas.getContext('2d').drawImage(videoElement, 0, 0);
     
-    const base64Image = canvas.toDataURL('image/jpeg', 0.6); // Slightly lower quality for faster upload
+    const base64Image = canvas.toDataURL('image/jpeg', 0.6); 
     
     capturedImage.src = base64Image;
     photoData.value = base64Image;
