@@ -94,6 +94,7 @@
 </div>
 
 <script>
+  // Agar aapne naya Web App deploy kiya hai naye URL ke sath, toh yahan URL update karna mat bhulna.
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIQrtxeJRhn7SaSgaFzvK3aPny2B1_c4d_-bjHqGDdm5DbjyfYwQj8eZ33BDus9Mds/exec";
 
   // Elements
@@ -112,13 +113,11 @@
   const managerSelect = document.getElementById('managerName');
   const storeSelect = document.getElementById('storeName');
   
-  // State variables
   let locationFetched = false;
   let photoCaptured = false;
   let rawMappings = [];
   let stream = null;
 
-  // 1. Dynamic Lists Loading
   function loadListsDynamic() {
     const script = document.createElement('script');
     script.src = "lists.js?v=" + new Date().getTime();
@@ -150,7 +149,6 @@
   }
   window.addEventListener('DOMContentLoaded', loadListsDynamic);
 
-  // 2. Dropdown Logic
   managerSelect.addEventListener('change', () => {
     const selectedManager = managerSelect.value;
     if (!selectedManager) {
@@ -179,7 +177,6 @@
   });
   storeSelect.addEventListener('change', checkFormReady);
 
-  // 3. GPS Tracking (Step 1)
   locationBtn.addEventListener('click', () => {
     statusDiv.innerText = "🔄 Fetching GPS... Please wait.";
     if (navigator.geolocation) {
@@ -202,7 +199,6 @@
     }
   });
 
-  // 4. Camera & Selfie (Step 2)
   async function startCamera() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
@@ -235,8 +231,7 @@
     canvas.height = videoElement.videoHeight;
     canvas.getContext('2d').drawImage(videoElement, 0, 0);
     
-    // Compress image to Base64 (0.7 quality)
-    const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+    const base64Image = canvas.toDataURL('image/jpeg', 0.6); // Slightly lower quality for faster upload
     
     capturedImage.src = base64Image;
     photoData.value = base64Image;
@@ -249,7 +244,6 @@
     checkFormReady();
   });
 
-  // 5. Validation & Submit
   function checkFormReady() {
     if (locationFetched && photoCaptured && managerSelect.value && storeSelect.value) {
       submitBtn.disabled = false;
@@ -271,7 +265,7 @@
     formData.append('remarks', document.getElementById('remarks').value);
     formData.append('latitude', document.getElementById('latitude').value);
     formData.append('longitude', document.getElementById('longitude').value);
-    formData.append('photoBase64', photoData.value); // New Photo Data sent to Google Sheet
+    formData.append('photoBase64', photoData.value); 
 
     fetch(WEB_APP_URL, {
       method: "POST",
