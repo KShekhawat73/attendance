@@ -12,25 +12,36 @@
     .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; flex-wrap: wrap; gap: 15px; }
     .btn-refresh { padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     
-    /* 🎨 Motu Patlu Board Design */
-    .title-container { display: flex; align-items: center; justify-content: center; }
-    .mascot { height: 85px; z-index: 2; position: relative; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3)); }
-    .motu { margin-right: -15px; } /* Motu overlap from left */
-    .patlu { margin-left: -15px; transform: scaleX(-1); } /* Patlu overlap from right (flipped) */
+    /* 🪵 Motu Patlu Wooden Board Design */
+    .title-container { display: flex; align-items: center; justify-content: center; margin-top: 10px; }
+    
+    .mascot { 
+      height: 120px; /* Badi image taaki real lage */
+      z-index: 3; 
+      position: relative; 
+      filter: drop-shadow(4px 6px 6px rgba(0,0,0,0.4)); 
+      transition: transform 0.3s;
+    }
+    .mascot:hover { transform: scale(1.1); }
+    
+    .motu { margin-right: -30px; margin-top: 20px; } /* Motu board ke upar se pakdega */
+    .patlu { margin-left: -30px; margin-top: 20px; transform: scaleX(-1); } /* Patlu ko ghuma diya taaki wo board ki taraf dekhe */
+    .patlu:hover { transform: scaleX(-1) scale(1.1); }
     
     .sign-board {
-      background: linear-gradient(to bottom, #ffeb3b, #fbc02d);
-      border: 4px solid #e65100;
+      background: linear-gradient(135deg, #8b4513, #a0522d, #8b4513); /* Lakdi (Wood) jaisa color */
+      border: 4px solid #4a2511;
       border-radius: 12px;
-      padding: 12px 25px;
-      color: #b71c1c;
-      font-size: 1.8rem;
-      font-weight: 800;
-      box-shadow: 0px 8px 15px rgba(0,0,0,0.2), inset 0px 2px 5px rgba(255,255,255,0.6);
-      text-shadow: 1px 1px 0px rgba(255,255,255,0.7);
+      padding: 15px 40px;
+      color: #fff;
+      font-size: 2.2rem;
+      font-weight: 900;
+      box-shadow: 0px 10px 20px rgba(0,0,0,0.3), inset 0px 2px 10px rgba(255,255,255,0.2);
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
       position: relative;
       z-index: 1;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+      font-family: 'Comic Sans MS', cursive, sans-serif; /* Cartoonish text */
     }
 
     /* Summary Cards */
@@ -82,17 +93,19 @@
 <div class="container">
   
   <div class="header-box">
-    <!-- 🔥 Motu Patlu Board HTML Starts Here 🔥 -->
+    <!-- 🔥 Motu Patlu Wooden Board HTML 🔥 -->
     <div class="title-container">
-      <!-- You can replace the src link below with a real Motu PNG link -->
-      <img src="https://cdn-icons-png.flaticon.com/512/4333/4333609.png" alt="Motu" class="mascot motu">
       
+      <!-- Motu Image (Left Side) -->
+      <img src="https://i.pinimg.com/originals/a0/0b/40/a00b40e791bdf1b2d41b52a12a9a7a6c.png" alt="Motu" class="mascot motu" onerror="this.src='https://cdn-icons-png.flaticon.com/512/4333/4333609.png'">
+      
+      <!-- Center Board -->
       <div class="sign-board">Admin Monitor Dashboard</div>
       
-      <!-- You can replace the src link below with a real Patlu PNG link -->
-      <img src="https://cdn-icons-png.flaticon.com/512/4333/4333640.png" alt="Patlu" class="mascot patlu">
+      <!-- Patlu Image (Right Side) -->
+      <img src="https://i.pinimg.com/originals/c9/28/fc/c928fcce4d31481b7e568db35b6f3c14.png" alt="Patlu" class="mascot patlu" onerror="this.src='https://cdn-icons-png.flaticon.com/512/4333/4333640.png'">
+      
     </div>
-    <!-- 🔥 Motu Patlu Board HTML Ends Here 🔥 -->
 
     <button class="btn-refresh" onclick="fetchAttendanceData()">🔄 Refresh Live Data</button>
   </div>
