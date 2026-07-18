@@ -12,29 +12,34 @@
     .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 15px; }
     .btn-refresh { padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     
-    /* 🪵 Full Motu Patlu Wooden Board Design */
+    /* 🪵 Motu Patlu Custom Cropped Avatars */
     .title-container { display: flex; align-items: center; justify-content: center; margin-top: 15px; }
     
-    .mascot { 
-      height: 140px; /* Bada size taaki full khade dikhein */
-      width: auto;
+    .mascot-circle { 
+      width: 110px; 
+      height: 110px; 
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background-color: #e0f7fa;
+      /* Yahan aapki upload ki hui image ka naam hai */
+      background-image: url('motu%20patlu_2.jpg'); 
+      background-size: 280%; /* Image ko zoom kiya taaki sirf face dikhe */
+      background-repeat: no-repeat;
       z-index: 3;
       position: relative;
-      filter: drop-shadow(4px 4px 5px rgba(0,0,0,0.4));
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       transition: transform 0.3s;
     }
-    .mascot:hover { transform: scale(1.1); }
+    .mascot-circle:hover { transform: scale(1.1); }
     
     .motu { 
-      margin-right: -35px; /* Board ke upar thoda aage aayega */
-      margin-bottom: -15px; 
+      background-position: 0% 35%; /* Left side (0%) se Motu ka chehra focus hoga */
+      margin-right: -30px; 
     } 
     .patlu { 
-      margin-left: -35px; /* Board ke upar thoda aage aayega */
-      margin-bottom: -15px; 
-      transform: scaleX(-1); /* Patlu ko ghuma diya board ki taraf dekhne ke liye */
+      background-position: 100% 25%; /* Right side (100%) se Patlu ka chehra focus hoga */
+      margin-left: -30px; 
     }
-    .patlu:hover { transform: scaleX(-1) scale(1.1); }
     
     .sign-board {
       background: linear-gradient(135deg, #8b4513, #a0522d, #8b4513);
@@ -101,33 +106,29 @@
 <div class="container">
   
   <div class="header-box">
-    <!-- 🔥 Motu Patlu Wooden Board HTML 🔥 -->
     <div class="title-container">
       
-      <!-- Motu Image with Security Bypass (referrerpolicy) -->
-      <img src="https://i.pinimg.com/originals/a0/0b/40/a00b40e791bdf1b2d41b52a12a9a7a6c.png" class="mascot motu" alt="Motu" referrerpolicy="no-referrer">
+      <!-- Motu Image (Cropped from your image) -->
+      <div class="mascot-circle motu" title="Motu"></div>
       
       <!-- Center Board -->
       <div class="sign-board">Admin Monitor Dashboard</div>
       
-      <!-- Patlu Image with Security Bypass (referrerpolicy) -->
-      <img src="https://i.pinimg.com/originals/c9/28/fc/c928fcce4d31481b7e568db35b6f3c14.png" class="mascot patlu" alt="Patlu" referrerpolicy="no-referrer">
+      <!-- Patlu Image (Cropped from your image) -->
+      <div class="mascot-circle patlu" title="Patlu"></div>
       
     </div>
 
     <button class="btn-refresh" onclick="fetchAttendanceData()">🔄 Refresh Live Data</button>
   </div>
 
-  <!-- Summary Cards Container -->
   <div class="summary-grid" id="summaryContainer"></div>
 
-  <!-- Search & Date Filter Section -->
   <div class="filter-box">
     <input type="text" id="searchBar" class="search-input" placeholder="🔍 Search Manager (Shows Monthly Records)..." onkeyup="updateDashboard()">
     <input type="date" id="dateFilter" class="date-picker" title="Select date to filter records" onchange="updateDashboard()">
   </div>
 
-  <!-- Main Data Table -->
   <div class="table-container">
     <div id="loadingState" class="loading">⏳ Fetching check-ins... Please wait.</div>
     <table id="attendanceTable" style="display: none;">
@@ -145,7 +146,6 @@
     </table>
   </div>
 
-  <!-- Monthly Manager Summary Table -->
   <h2 class="section-title">📊 Monthly Present Summary (<span id="summaryMonthName"></span>)</h2>
   <div class="table-container">
     <table class="summary-table">
@@ -160,13 +160,11 @@
   </div>
 </div>
 
-<!-- Image View Modal -->
 <div id="imageModal" class="modal" onclick="closeModal()">
   <span class="modal-close">&times;</span>
   <img class="modal-content" id="modalImg">
 </div>
 
-<!-- Load Total Managers List -->
 <script src="lists.js"></script>
 
 <script>
@@ -223,10 +221,8 @@
     }
     targetDate.setHours(0, 0, 0, 0);
 
-    // 1. Update Top Cards
     processPresentAndPending(targetDate);
 
-    // 2. Filter Main Table
     const filteredLogs = allLogs.filter(row => {
       const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
       if (isNaN(rowDate.getTime())) return false;
@@ -244,8 +240,6 @@
       }
     });
     renderTable(filteredLogs);
-
-    // 3. Update Bottom Monthly Summary Table
     renderMonthlySummary(targetDate);
   }
 
