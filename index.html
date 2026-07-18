@@ -13,7 +13,7 @@
     input, select, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 1rem; background-color: #fff; }
     
     button { width: 100%; padding: 14px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    button:disabled { background-color: #cccccc !important; cursor: not-allowed; }
+    button:disabled { background-color: #e9ecef !important; color: #dc3545 !important; cursor: not-allowed; border: 1px solid #dc3545; }
     
     #locationBtn { background: linear-gradient(45deg, #ffc107, #ff9800); }
     #cameraBtn { background: linear-gradient(45deg, #17a2b8, #117a8b); margin-top: 15px; }
@@ -76,7 +76,8 @@
     <input type="hidden" id="latitude" value="">
     <input type="hidden" id="longitude" value="">
 
-    <button type="submit" id="submitBtn" disabled>Complete Steps 1 & 2 First</button>
+    <!-- Default disabled button -->
+    <button type="submit" id="submitBtn" disabled>Checking details...</button>
   </form>
 </div>
 
@@ -128,6 +129,7 @@
         const totalRows = Math.max(storesArr.length, managersArr.length);
         
         for(let i = 0; i < totalRows; i++) {
+          // 🛠️ Optimization: Trim multiple spaces systematically
           let sVal = storesArr[i] ? storesArr[i].toString().trim() : "";
           let mVal = managersArr[i] ? managersArr[i].toString().trim() : "";
           if (sVal || mVal) {
@@ -139,28 +141,32 @@
         uniqueManagers = [...new Set(uniqueManagers)];
         uniqueManagers.sort((a, b) => a.localeCompare(undefined, { sensitivity: 'base', numeric: true }));
         
-        // 🛠️ UPDATED LOGIC: Agar login access 'admin' NAHI hai (matlab normal user hai)
-        if (loggedInUser && userAccess !== 'admin') {
-            
-            // Hide Manager and Store dropdowns completely for normal user
+        if (loggedInUser && userAccess !== 'all') {
             managerLabel.style.display = 'none';
             managerSelect.style.display = 'none';
             storeLabel.style.display = 'none';  
             storeSelect.style.display = 'none'; 
             
-            // Auto-select logged in user
-            managerSelect.innerHTML = `<option value="${loggedInUser}" selected>${loggedInUser}</option>`;
-            updateStoresForManager(loggedInUser);
+            // Clean the username parameter before placing it
+            const cleanUser = loggedInUser.trim();
+            managerSelect.innerHTML = `<option value="${cleanUser}" selected>${cleanUser}</option>`;
+            updateStoresForManager(cleanUser);
 
         } else {
-            // Agar Admin kisi wajah se form page par aata hai, toh usko sab dikhega
             managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
             uniqueManagers.forEach(name => {
                 managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
             });
-            storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
+
+            if (loggedInUser && userAccess === 'all') {
+                managerSelect.value = loggedInUser.trim();
+                updateStoresForManager(loggedInUser.trim());
+            } else {
+                storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
+            }
         }
       }
+      checkFormReady();
     };
     document.body.appendChild(script);
   }
@@ -174,20 +180,28 @@
       return;
     }
 
+    // 🛠️ Optimization: Strict lowercase and trim matching to avoid errors
+    const cleanSelectedManager = selectedManager.toLowerCase().trim();
     const matchedStores = rawMappings
-      .filter(item => item.manager.toLowerCase() === selectedManager.toLowerCase())
+      .filter(item => item.manager.toLowerCase().trim() === cleanSelectedManager)
       .map(item => item.store)
       .filter(store => store && store.length > 0);
 
     storeSelect.innerHTML = '';
+    
     if (matchedStores.length > 0) {
       matchedStores.forEach(store => {
         storeSelect.innerHTML += `<option value="${store}">${store}</option>`;
       });
       storeSelect.disabled = false;
     } else {
-      storeSelect.innerHTML = '<option value="">No store assigned</option>';
+      // 🛠️ Optimization: Fallback Fail-Safe. If store is missing, unhide and show warning.
+      storeSelect.innerHTML = '<option value="">Contact Admin - No Store Assigned</option>';
       storeSelect.disabled = true;
+      
+      // Unhide to let user see the actual problem
+      storeLabel.style.display = 'block';
+      storeSelect.style.display = 'block';
     }
     checkFormReady();
   }
@@ -250,13 +264,24 @@
     checkFormReady();
   });
 
+  // 🛠️ Optimization: Smart Error Checking on Submit Button
   function checkFormReady() {
-    if (locationFetched && photoCaptured && managerSelect.value && storeSelect.value) {
+    let missing = [];
+    
+    if (!locationFetched) missing.push("Location");
+    if (!photoCaptured) missing.push("Selfie");
+    if (!managerSelect.value) missing.push("Manager Name");
+    if (!storeSelect.value) missing.push("Store Assign");
+
+    if (missing.length === 0) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Submit Attendance 🚀";
+      submitBtn.style.background = "linear-gradient(45deg, #28a745, #218838)";
+      submitBtn.style.color = "white";
+      submitBtn.style.border = "none";
     } else {
       submitBtn.disabled = true;
-      submitBtn.textContent = "Complete Steps 1 & 2 First";
+      submitBtn.textContent = "Missing: " + missing.join(", ");
     }
   }
 
