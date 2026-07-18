@@ -20,7 +20,7 @@
       width: auto;
       z-index: 3;
       position: relative;
-      filter: drop-shadow(4px 4px 5px rgba(0,0,0,0.4)); /* Halki shadow original look ke liye */
+      filter: drop-shadow(4px 4px 5px rgba(0,0,0,0.4));
       transition: transform 0.3s;
     }
     .mascot:hover { transform: scale(1.1); }
@@ -104,14 +104,14 @@
     <!-- 🔥 Motu Patlu Wooden Board HTML 🔥 -->
     <div class="title-container">
       
-      <!-- Safe PNG Link for Full Motu -->
-      <img src="https://i.pinimg.com/originals/a0/0b/40/a00b40e791bdf1b2d41b52a12a9a7a6c.png" class="mascot motu" alt="Motu">
+      <!-- Motu Image with Security Bypass (referrerpolicy) -->
+      <img src="https://i.pinimg.com/originals/a0/0b/40/a00b40e791bdf1b2d41b52a12a9a7a6c.png" class="mascot motu" alt="Motu" referrerpolicy="no-referrer">
       
       <!-- Center Board -->
       <div class="sign-board">Admin Monitor Dashboard</div>
       
-      <!-- Safe PNG Link for Full Patlu -->
-      <img src="https://i.pinimg.com/originals/c9/28/fc/c928fcce4d31481b7e568db35b6f3c14.png" class="mascot patlu" alt="Patlu">
+      <!-- Patlu Image with Security Bypass (referrerpolicy) -->
+      <img src="https://i.pinimg.com/originals/c9/28/fc/c928fcce4d31481b7e568db35b6f3c14.png" class="mascot patlu" alt="Patlu" referrerpolicy="no-referrer">
       
     </div>
 
@@ -226,7 +226,7 @@
     // 1. Update Top Cards
     processPresentAndPending(targetDate);
 
-    // 2. Filter Main Table (Smart Logic)
+    // 2. Filter Main Table
     const filteredLogs = allLogs.filter(row => {
       const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
       if (isNaN(rowDate.getTime())) return false;
