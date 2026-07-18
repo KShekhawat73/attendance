@@ -57,9 +57,7 @@
   </div>
 
   <!-- Dynamic Summary Cards -->
-  <div class="summary-grid" id="summaryContainer">
-    <!-- Populated via JS -->
-  </div>
+  <div class="summary-grid" id="summaryContainer"></div>
 
   <div class="search-box">
     <input type="text" id="searchBar" class="search-input" placeholder="🔍 Search by Manager or Store Name..." onkeyup="filterTable()">
@@ -78,9 +76,7 @@
           <th>Remarks</th>
         </tr>
       </thead>
-      <tbody id="tableBody">
-        <!-- Rows injected here -->
-      </tbody>
+      <tbody id="tableBody"></tbody>
     </table>
   </div>
 </div>
@@ -95,8 +91,20 @@
 <script src="lists.js"></script>
 
 <script>
-  // Aapka Google Apps Script URL
+  // Aapka Apps Script URL
   const FETCH_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrzxW8xqoSQQ7OzSxSvZhJ/exec"; 
+
+  // FIX 1: Smart Date Parser for DD/MM/YYYY
+  function parseCustomDate(dateStr) {
+    if (!dateStr) return new Date("");
+    let parts = dateStr.trim().split(" ");
+    let dmy = parts[0].split("/");
+    if (dmy.length === 3) {
+       let time = parts[1] || "00:00:00";
+       return new Date(`${dmy[2]}-${dmy[1]}-${dmy[0]}T${time}`);
+    }
+    return new Date(dateStr);
+  }
 
   async function fetchAttendanceData() {
     document.getElementById('loadingState').style.display = 'block';
@@ -110,7 +118,7 @@
       renderTable(data);
       
     } catch (error) {
-      document.getElementById('loadingState').innerText = "❌ Error: Could not load data. Ensure Apps Script is deployed as 'Anyone'.";
+      document.getElementById('loadingState').innerText = "❌ Error: Could not load data. Ensure Apps Script is deployed properly.";
       console.error(error);
     }
   }
@@ -121,20 +129,21 @@
 
     const presentManagers = [];
     
-    // Check who is present today
     logs.forEach(row => {
-      const rowDate = new Date(row.Timestamp || row.timestamp || row.Date);
-      rowDate.setHours(0, 0, 0, 0);
+      const rawDate = row.Timestamp || row.timestamp || row.Date || "";
+      const rowDate = parseCustomDate(rawDate); // Using our fixed date parser
 
-      if (rowDate.getTime() === today.getTime()) {
-        const mName = (row.managerName || row.Manager || "").toLowerCase().trim();
-        if (mName && !presentManagers.includes(mName)) {
-          presentManagers.push(mName);
+      if (!isNaN(rowDate.getTime())) {
+        rowDate.setHours(0, 0, 0, 0);
+        if (rowDate.getTime() === today.getTime()) {
+          const mName = (row.Manager || row.managerName || "").toLowerCase().trim();
+          if (mName && !presentManagers.includes(mName)) {
+            presentManagers.push(mName);
+          }
         }
       }
     });
 
-    // Get all managers from your lists.js file
     let allManagers = [];
     if (typeof portalLists !== 'undefined' && portalLists.managers) {
         allManagers = portalLists.managers.filter(m => m && m.trim() !== "");
@@ -147,7 +156,6 @@
       }
     });
 
-    // Render Cards
     const summaryHtml = `
       <div class="summary-card present-card">
         <h3>✅ Present Today (${presentManagers.length})</h3>
@@ -172,24 +180,35 @@
 
     logs.forEach(row => {
       const rawDate = row.Timestamp || row.timestamp || row.Date || "";
-      const formattedDate = rawDate ? new Date(rawDate).toLocaleString('en-IN') : "N/A";
+      const parsedDate = parseCustomDate(rawDate);
+      const formattedDate = !isNaN(parsedDate.getTime()) ? parsedDate.toLocaleString('en-IN') : "N/A";
       
-      const manager = row.managerName || row.Manager || "N/A";
-      const store = row.storeName || row.Store || "N/A";
-      const remarks = row.remarks || row.Remarks || "-";
+      const manager = row.Manager || row.managerName || "N/A";
+      const store = row.Store || row.storeName || "N/A";
+      const remarks = row.Remarks || row.remarks || "-";
       const lat = row.latitude || row.Latitude;
       const lng = row.longitude || row.Longitude;
-      const imgBase64 = row.photoBase64 || row.PhotoBase64 || row.Photo || ""; 
+      const rawImg = row.Photo || row.PhotoBase64 || row.photoBase64 || ""; 
 
       const tr = document.createElement('tr');
       
-      // Selfie Column (Updated to support Google Drive links)
+      // FIX 2: Handle Google Drive Links properly
       let photoHtml = `<span style="color:#999">No Image</span>`;
-      if (imgBase64 && (imgBase64.startsWith('data:image') || imgBase64.startsWith('http'))) {
-        photoHtml = `<img src="${imgBase64}" class="thumbnail-img" onclick="openModal('${imgBase64}')" title="Click to view full size"/>`;
+      if (rawImg) {
+        if (rawImg.startsWith('data:image')) {
+            photoHtml = `<img src="${rawImg}" class="thumbnail-img" onclick="openModal('${rawImg}')" title="Click to view full size"/>`;
+        } else if (rawImg.includes('drive.google.com')) {
+            // Drive URL me se ID nikal kar official thumbnail API use karna
+            let fileIdMatch = rawImg.match(/[-\w]{25,}/);
+            if (fileIdMatch) {
+                let thumbUrl = `https://drive.google.com/thumbnail?id=${fileIdMatch[0]}&sz=w200-h200`;
+                photoHtml = `<img src="${thumbUrl}" class="thumbnail-img" onclick="openModal('${thumbUrl.replace('w200-h200', 'w800-h800')}')" title="Click to view full size"/>`;
+            } else {
+                photoHtml = `<a href="${rawImg}" target="_blank" style="color: blue;">View File</a>`;
+            }
+        }
       }
 
-      // Maps Link Column
       let mapHtml = `<span style="color:#999">No Location</span>`;
       if(lat && lng) {
         mapHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" class="btn-map">📍 View on Map</a>`;
@@ -213,11 +232,9 @@
   function filterTable() {
     const input = document.getElementById("searchBar").value.toLowerCase();
     const rows = document.getElementById("tableBody").getElementsByTagName("tr");
-    
     for (let i = 0; i < rows.length; i++) {
       const managerText = rows[i].getElementsByTagName("td")[1]?.textContent.toLowerCase() || "";
       const storeText = rows[i].getElementsByTagName("td")[2]?.textContent.toLowerCase() || "";
-      
       if (managerText.includes(input) || storeText.includes(input)) {
         rows[i].style.display = "";
       } else {
@@ -226,7 +243,6 @@
     }
   }
 
-  // Lightbox Handlers
   function openModal(imgSrc) {
     document.getElementById("modalImg").src = imgSrc;
     document.getElementById("imageModal").style.display = "flex";
