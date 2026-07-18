@@ -9,40 +9,42 @@
     body { background-color: #f4f6f9; color: #333; padding: 20px; }
     .container { max-width: 1200px; margin: 0 auto; padding-bottom: 50px; }
     
-    .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; flex-wrap: wrap; gap: 15px; }
+    .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 15px; }
     .btn-refresh { padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     
-    /* 🪵 Motu Patlu Round Avatars + Wooden Board Design */
-    .title-container { display: flex; align-items: center; justify-content: center; margin-top: 10px; }
+    /* 🪵 Full Motu Patlu Wooden Board Design */
+    .title-container { display: flex; align-items: center; justify-content: center; margin-top: 15px; }
     
-    .mascot-circle { 
-      width: 90px; 
-      height: 90px; 
-      border-radius: 50%;
-      border: 4px solid #fff;
-      object-fit: cover;
-      background-color: #fff;
+    .mascot { 
+      height: 140px; /* Bada size taaki full khade dikhein */
+      width: auto;
       z-index: 3;
       position: relative;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      filter: drop-shadow(4px 4px 5px rgba(0,0,0,0.4)); /* Halki shadow original look ke liye */
       transition: transform 0.3s;
     }
-    .mascot-circle:hover { transform: scale(1.1); }
+    .mascot:hover { transform: scale(1.1); }
     
-    .motu { margin-right: -25px; } 
-    /* Patlu ko flip kiya hai taaki wo board ki taraf dekhe */
-    .patlu { margin-left: -25px; transform: scaleX(-1); }
+    .motu { 
+      margin-right: -35px; /* Board ke upar thoda aage aayega */
+      margin-bottom: -15px; 
+    } 
+    .patlu { 
+      margin-left: -35px; /* Board ke upar thoda aage aayega */
+      margin-bottom: -15px; 
+      transform: scaleX(-1); /* Patlu ko ghuma diya board ki taraf dekhne ke liye */
+    }
     .patlu:hover { transform: scaleX(-1) scale(1.1); }
     
     .sign-board {
       background: linear-gradient(135deg, #8b4513, #a0522d, #8b4513);
-      border: 3px solid #5d2906;
+      border: 4px solid #4a2511;
       border-radius: 12px;
-      padding: 12px 40px;
+      padding: 15px 40px;
       color: #fff;
-      font-size: 2rem;
+      font-size: 2.2rem;
       font-weight: 900;
-      box-shadow: 0px 8px 15px rgba(0,0,0,0.2), inset 0px 2px 5px rgba(255,255,255,0.2);
+      box-shadow: 0px 8px 15px rgba(0,0,0,0.3), inset 0px 2px 5px rgba(255,255,255,0.2);
       text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
       position: relative;
       z-index: 1;
@@ -102,14 +104,14 @@
     <!-- 🔥 Motu Patlu Wooden Board HTML 🔥 -->
     <div class="title-container">
       
-      <!-- Safe Image Link for Motu -->
-      <img src="https://m.media-amazon.com/images/M/MV5BMzRhNWZhMGEtYjU4OS00N2EzLWJmODMtNDM1NWEyN2ZlNjUyXkEyXkFqcGdeQXVyOTk3NTc2MzE@._V1_QL75_UX140_CR0,0,140,140_.jpg" class="mascot-circle motu" alt="Motu">
+      <!-- Safe PNG Link for Full Motu -->
+      <img src="https://i.pinimg.com/originals/a0/0b/40/a00b40e791bdf1b2d41b52a12a9a7a6c.png" class="mascot motu" alt="Motu">
       
       <!-- Center Board -->
       <div class="sign-board">Admin Monitor Dashboard</div>
       
-      <!-- Safe Image Link for Patlu -->
-      <img src="https://m.media-amazon.com/images/M/MV5BN2E1ZWIzNDQtZDg3NC00YjU1LWIxZTktYTI2MGU2MGIyZTBjXkEyXkFqcGdeQXVyOTk3NTc2MzE@._V1_QL75_UX140_CR0,0,140,140_.jpg" class="mascot-circle patlu" alt="Patlu">
+      <!-- Safe PNG Link for Full Patlu -->
+      <img src="https://i.pinimg.com/originals/c9/28/fc/c928fcce4d31481b7e568db35b6f3c14.png" class="mascot patlu" alt="Patlu">
       
     </div>
 
