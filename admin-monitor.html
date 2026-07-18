@@ -13,21 +13,12 @@
     .btn-refresh { padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s; }
     .btn-refresh:hover { background: #218838; }
     
-    /* 🎨 Header Design with Motu Patlu on Left */
+    /* 🎨 Header Design */
     .title-wrapper { 
       display: flex; 
       align-items: center; 
       justify-content: center; 
-      gap: 15px; /* Image aur Board ke beech ka space */
       margin-top: 10px;
-    }
-    
-    .mascot-left { 
-      height: 140px; /* Image ki height set ki */
-      width: auto;
-      border-radius: 12px; /* Image ke corners gol kiye */
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* Image par shadow */
-      z-index: 2;
     }
     
     .sign-board {
@@ -42,7 +33,7 @@
       box-shadow: -5px 8px 15px rgba(0,0,0,0.4), 5px 8px 15px rgba(0,0,0,0.4), inset 0px 2px 5px rgba(255,255,255,0.2);
       text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
       position: relative;
-      z-index: 3; /* Sabse aage */
+      z-index: 3;
       letter-spacing: 1px;
       font-family: 'Comic Sans MS', cursive, sans-serif;
     }
@@ -97,15 +88,9 @@
   
   <div class="header-box">
     <div class="title-wrapper">
-      
-      <!-- New Motu Patlu Image on the Left side -->
-      <img src="Motu%20Patlu_1_2.jfif" alt="Motu Patlu" class="mascot-left">
-      
       <!-- Center Board -->
       <div class="sign-board">Admin Monitor Dashboard</div>
-      
     </div>
-
     <button class="btn-refresh" onclick="fetchAttendanceData()">🔄 Refresh Live Data</button>
   </div>
 
