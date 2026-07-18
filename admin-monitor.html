@@ -20,11 +20,8 @@
       height: 90px; 
       border-radius: 50%;
       border: 4px solid #fff;
-      background-color: #87ceeb; /* Sky blue background */
-      /* Reliable Wikipedia Image for Motu Patlu */
-      background-image: url('https://upload.wikimedia.org/wikipedia/en/0/05/Motu_Patlu.png');
-      background-size: 200%; /* Zooms in to show one character at a time */
-      background-repeat: no-repeat;
+      object-fit: cover;
+      background-color: #fff;
       z-index: 3;
       position: relative;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
@@ -32,14 +29,10 @@
     }
     .mascot-circle:hover { transform: scale(1.1); }
     
-    .motu { 
-      background-position: left center; /* Focus on Motu */
-      margin-right: -25px; /* Overlap board from left */
-    } 
-    .patlu { 
-      background-position: right center; /* Focus on Patlu */
-      margin-left: -25px; /* Overlap board from right */
-    }
+    .motu { margin-right: -25px; } 
+    /* Patlu ko flip kiya hai taaki wo board ki taraf dekhe */
+    .patlu { margin-left: -25px; transform: scaleX(-1); }
+    .patlu:hover { transform: scaleX(-1) scale(1.1); }
     
     .sign-board {
       background: linear-gradient(135deg, #8b4513, #a0522d, #8b4513);
@@ -109,14 +102,14 @@
     <!-- 🔥 Motu Patlu Wooden Board HTML 🔥 -->
     <div class="title-container">
       
-      <!-- Left Avatar (Motu) -->
-      <div class="mascot-circle motu" title="Motu"></div>
+      <!-- Safe Image Link for Motu -->
+      <img src="https://m.media-amazon.com/images/M/MV5BMzRhNWZhMGEtYjU4OS00N2EzLWJmODMtNDM1NWEyN2ZlNjUyXkEyXkFqcGdeQXVyOTk3NTc2MzE@._V1_QL75_UX140_CR0,0,140,140_.jpg" class="mascot-circle motu" alt="Motu">
       
       <!-- Center Board -->
       <div class="sign-board">Admin Monitor Dashboard</div>
       
-      <!-- Right Avatar (Patlu) -->
-      <div class="mascot-circle patlu" title="Patlu"></div>
+      <!-- Safe Image Link for Patlu -->
+      <img src="https://m.media-amazon.com/images/M/MV5BN2E1ZWIzNDQtZDg3NC00YjU1LWIxZTktYTI2MGU2MGIyZTBjXkEyXkFqcGdeQXVyOTk3NTc2MzE@._V1_QL75_UX140_CR0,0,140,140_.jpg" class="mascot-circle patlu" alt="Patlu">
       
     </div>
 
@@ -241,11 +234,9 @@
       const isTextMatch = managerText.includes(searchText) || storeText.includes(searchText);
 
       if (searchText.length > 0) {
-        // SMART LOGIC: If searching, match the whole MONTH and YEAR of selected date
         const isMonthMatch = (rowDate.getMonth() === targetDate.getMonth() && rowDate.getFullYear() === targetDate.getFullYear());
         return isMonthMatch && isTextMatch;
       } else {
-        // EXACT LOGIC: If no search, match ONLY the exact selected DAY
         rowDate.setHours(0, 0, 0, 0);
         return (rowDate.getTime() === targetDate.getTime());
       }
@@ -309,7 +300,7 @@
     logs.sort((a, b) => {
       const dateA = parseCustomDate(a.Timestamp || a.timestamp || a.Date).getTime();
       const dateB = parseCustomDate(b.Timestamp || b.timestamp || b.Date).getTime();
-      return dateB - dateA; // Newest on top
+      return dateB - dateA; 
     });
 
     logs.forEach(row => {
@@ -370,9 +361,8 @@
     document.getElementById('summaryMonthName').innerText = `${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
 
     const managerCounts = {};
-    const managerStores = {}; // To map manager to their store
+    const managerStores = {}; 
     
-    // Load all managers and their stores from lists.js
     if (typeof portalLists !== 'undefined' && portalLists.managers && portalLists.stores) {
         const maxLen = Math.max(portalLists.managers.length, portalLists.stores.length);
         for(let i=0; i<maxLen; i++) {
@@ -386,7 +376,6 @@
         }
     }
 
-    // Count unique days they were present in the selected month
     allLogs.forEach(row => {
       const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
       if (!isNaN(rowDate.getTime())) {
