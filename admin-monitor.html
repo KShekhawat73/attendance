@@ -57,13 +57,14 @@
     <button class="btn-refresh" onclick="fetchAttendanceData()">🔄 Refresh Live Data</button>
   </div>
 
+  <!-- Summary Cards Container -->
   <div class="summary-grid" id="summaryContainer"></div>
 
   <!-- Search & Date Filter Section -->
   <div class="filter-box">
     <input type="text" id="searchBar" class="search-input" placeholder="🔍 Search by Manager or Store Name..." onkeyup="updateDashboard()">
     
-    <!-- New Date Picker -->
+    <!-- Date Picker for Filtering -->
     <input type="date" id="dateFilter" class="date-picker" title="Select date to filter records" onchange="updateDashboard()">
   </div>
 
@@ -85,18 +86,22 @@
   </div>
 </div>
 
+<!-- Image View Modal -->
 <div id="imageModal" class="modal" onclick="closeModal()">
   <span class="modal-close">&times;</span>
   <img class="modal-content" id="modalImg">
 </div>
 
+<!-- Load Total Managers List -->
 <script src="lists.js"></script>
 
 <script>
-  const FETCH_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrFrzxW8xqoSQQ7OzSxSvZhJ/exec"; 
+  // Sahi URL - Typo fixed
+  const FETCH_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrzxW8xqoSQQ7OzSxSvZhJ/exec"; 
   
-  let allLogs = []; // Global variable to store fetched data
+  let allLogs = []; 
 
+  // Format the DD/MM/YYYY dates from your sheet properly
   function parseCustomDate(dateStr) {
     if (!dateStr) return new Date("");
     let parts = dateStr.trim().split(" ");
@@ -114,9 +119,9 @@
     
     try {
       const response = await fetch(FETCH_URL);
-      allLogs = await response.json(); // Save data globally
+      allLogs = await response.json(); 
       
-      // Auto-set today's date in calendar if empty
+      // Auto-set today's date in calendar when the page loads
       const datePicker = document.getElementById('dateFilter');
       if (!datePicker.value) {
         const today = new Date();
@@ -126,7 +131,8 @@
         datePicker.value = `${yyyy}-${mm}-${dd}`;
       }
 
-      updateDashboard(); // Process cards and table
+      // Populate dashboard based on default today's date
+      updateDashboard(); 
       
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('attendanceTable').style.display = 'table';
@@ -141,7 +147,6 @@
     const dateVal = document.getElementById('dateFilter').value;
     const searchText = document.getElementById('searchBar').value.toLowerCase();
     
-    // Safely parse selected date
     let targetDate = new Date();
     if (dateVal) {
       let [y, m, d] = dateVal.split('-');
@@ -149,10 +154,10 @@
     }
     targetDate.setHours(0, 0, 0, 0);
 
-    // 1. Calculate Cards (Only based on Date)
+    // 1. Calculate Cards (Only based on Selected Date)
     processPresentAndPending(targetDate);
 
-    // 2. Filter Table (Based on Date + Search Text)
+    // 2. Filter Table (Based on Selected Date + Search Text)
     const filteredLogs = allLogs.filter(row => {
       const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
       let isDateMatch = false;
@@ -175,6 +180,7 @@
   function processPresentAndPending(targetDate) {
     const presentManagers = [];
     
+    // Find who is present on the selected date
     allLogs.forEach(row => {
       const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
       if (!isNaN(rowDate.getTime())) {
@@ -188,11 +194,13 @@
       }
     });
 
+    // Get total managers from lists.js
     let allManagersLists = [];
     if (typeof portalLists !== 'undefined' && portalLists.managers) {
         allManagersLists = portalLists.managers.filter(m => m && m.trim() !== "");
     }
 
+    // Find who is missing (Pending)
     const pendingManagers = [];
     allManagersLists.forEach(manager => {
       if (!presentManagers.includes(manager.toLowerCase().trim())) {
@@ -200,9 +208,12 @@
       }
     });
 
+    // Display formatted date on card
+    const displayDate = targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
     const summaryHtml = `
       <div class="summary-card present-card">
-        <h3>✅ Present on Selected Date (${presentManagers.length})</h3>
+        <h3>✅ Present on ${displayDate} (${presentManagers.length})</h3>
         <p><strong>Managers:</strong> ${presentManagers.map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(", ") || "No one yet."}</p>
       </div>
       <div class="summary-card pending-card">
@@ -218,9 +229,16 @@
     tbody.innerHTML = "";
     
     if(logs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 30px; color: #6c757d;">No attendance records found for this date/search.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 30px; color: #6c757d; font-weight: bold;">No attendance records found for this date.</td></tr>`;
       return;
     }
+
+    // Sort logs so newest entry is at the top
+    logs.sort((a, b) => {
+      const dateA = parseCustomDate(a.Timestamp || a.timestamp || a.Date).getTime();
+      const dateB = parseCustomDate(b.Timestamp || b.timestamp || b.Date).getTime();
+      return dateB - dateA;
+    });
 
     logs.forEach(row => {
       const parsedDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
@@ -229,9 +247,19 @@
       const manager = row.Manager || row.managerName || "N/A";
       const store = row.Store || row.storeName || "N/A";
       const remarks = row.Remarks || row.remarks || "-";
-      const lat = row.latitude || row.Latitude;
-      const lng = row.longitude || row.Longitude;
-      const rawImg = row.Photo || row.PhotoBase64 || row.photoBase64 || ""; 
+      const lat = row.latitude || row.Latitude || row.Lat;
+      const lng = row.longitude || row.Longitude || row.Lng;
+      
+      // Attempt to extract lat/lng if saved as "Lat: XX, Lng: XX" string in one column
+      let finalLat = lat;
+      let finalLng = lng;
+      const latLongString = row['Lat-Long'] || row.Location || ""; 
+      if (!finalLat && latLongString.includes('Lat:')) {
+         const match = latLongString.match(/Lat:\s*([0-9.]+),\s*Lng:\s*([0-9.]+)/);
+         if(match) { finalLat = match[1]; finalLng = match[2]; }
+      }
+
+      const rawImg = row['Selfie Link'] || row.Photo || row.PhotoBase64 || row.photoBase64 || ""; 
 
       const tr = document.createElement('tr');
       
@@ -245,14 +273,14 @@
                 let thumbUrl = `https://drive.google.com/thumbnail?id=${fileIdMatch[0]}&sz=w200-h200`;
                 photoHtml = `<img src="${thumbUrl}" class="thumbnail-img" onclick="openModal('${thumbUrl.replace('w200-h200', 'w800-h800')}')"/>`;
             } else {
-                photoHtml = `<a href="${rawImg}" target="_blank" style="color: blue;">View</a>`;
+                photoHtml = `<a href="${rawImg}" target="_blank" style="color: blue; text-decoration: underline;">View</a>`;
             }
         }
       }
 
       let mapHtml = `<span style="color:#999">No Location</span>`;
-      if(lat && lng) {
-        mapHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" class="btn-map">📍 Map</a>`;
+      if(finalLat && finalLng) {
+        mapHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${finalLat},${finalLng}" target="_blank" class="btn-map">📍 Map</a>`;
       }
 
       tr.innerHTML = `
