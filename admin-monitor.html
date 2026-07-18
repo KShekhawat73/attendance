@@ -23,9 +23,10 @@
     .pending-card h3 { color: #c62828; }
     .summary-card p { font-size: 0.95rem; color: #555; line-height: 1.5; }
 
-    /* Search Bar */
-    .search-box { margin-bottom: 20px; }
-    .search-input { padding: 12px 15px; border: 1px solid #ced4da; border-radius: 8px; width: 100%; max-width: 400px; font-size: 1rem; }
+    /* Filters: Search & Date */
+    .filter-box { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+    .search-input { padding: 12px 15px; border: 1px solid #ced4da; border-radius: 8px; font-size: 1rem; width: 100%; max-width: 350px; }
+    .date-picker { padding: 11px 15px; border: 1px solid #ced4da; border-radius: 8px; font-size: 1rem; cursor: pointer; color: #495057; font-weight: bold; background: white; }
     
     /* Table Styling */
     .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto; }
@@ -40,7 +41,7 @@
     .thumbnail-img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid #dee2e6; transition: transform 0.2s; }
     .thumbnail-img:hover { transform: scale(1.1); border-color: #28a745; }
 
-    /* Modal for Image Preview */
+    /* Modal */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
     .modal-content { max-width: 90%; max-height: 80%; border-radius: 12px; border: 4px solid white; }
     .modal-close { position: absolute; top: 20px; right: 30px; color: white; font-size: 2.5rem; cursor: pointer; font-weight: bold; }
@@ -56,15 +57,18 @@
     <button class="btn-refresh" onclick="fetchAttendanceData()">🔄 Refresh Live Data</button>
   </div>
 
-  <!-- Dynamic Summary Cards -->
   <div class="summary-grid" id="summaryContainer"></div>
 
-  <div class="search-box">
-    <input type="text" id="searchBar" class="search-input" placeholder="🔍 Search by Manager or Store Name..." onkeyup="filterTable()">
+  <!-- Search & Date Filter Section -->
+  <div class="filter-box">
+    <input type="text" id="searchBar" class="search-input" placeholder="🔍 Search by Manager or Store Name..." onkeyup="updateDashboard()">
+    
+    <!-- New Date Picker -->
+    <input type="date" id="dateFilter" class="date-picker" title="Select date to filter records" onchange="updateDashboard()">
   </div>
 
   <div class="table-container">
-    <div id="loadingState" class="loading">⏳ Fetching today's check-ins... Please wait.</div>
+    <div id="loadingState" class="loading">⏳ Fetching check-ins... Please wait.</div>
     <table id="attendanceTable" style="display: none;">
       <thead>
         <tr>
@@ -81,20 +85,18 @@
   </div>
 </div>
 
-<!-- Image Modal -->
 <div id="imageModal" class="modal" onclick="closeModal()">
   <span class="modal-close">&times;</span>
   <img class="modal-content" id="modalImg">
 </div>
 
-<!-- Load Managers List -->
 <script src="lists.js"></script>
 
 <script>
-  // Aapka Apps Script URL
-  const FETCH_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrzxW8xqoSQQ7OzSxSvZhJ/exec"; 
+  const FETCH_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrFrzxW8xqoSQQ7OzSxSvZhJ/exec"; 
+  
+  let allLogs = []; // Global variable to store fetched data
 
-  // FIX 1: Smart Date Parser for DD/MM/YYYY
   function parseCustomDate(dateStr) {
     if (!dateStr) return new Date("");
     let parts = dateStr.trim().split(" ");
@@ -112,30 +114,72 @@
     
     try {
       const response = await fetch(FETCH_URL);
-      const data = await response.json();
+      allLogs = await response.json(); // Save data globally
       
-      processPresentAndPending(data);
-      renderTable(data);
+      // Auto-set today's date in calendar if empty
+      const datePicker = document.getElementById('dateFilter');
+      if (!datePicker.value) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        datePicker.value = `${yyyy}-${mm}-${dd}`;
+      }
+
+      updateDashboard(); // Process cards and table
+      
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('attendanceTable').style.display = 'table';
       
     } catch (error) {
       document.getElementById('loadingState').innerText = "❌ Error: Could not load data. Ensure Apps Script is deployed properly.";
-      console.error(error);
     }
   }
 
-  function processPresentAndPending(logs) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-
-    const presentManagers = [];
+  // Master function to apply Date and Search filters together
+  function updateDashboard() {
+    const dateVal = document.getElementById('dateFilter').value;
+    const searchText = document.getElementById('searchBar').value.toLowerCase();
     
-    logs.forEach(row => {
-      const rawDate = row.Timestamp || row.timestamp || row.Date || "";
-      const rowDate = parseCustomDate(rawDate); // Using our fixed date parser
+    // Safely parse selected date
+    let targetDate = new Date();
+    if (dateVal) {
+      let [y, m, d] = dateVal.split('-');
+      targetDate = new Date(y, m - 1, d);
+    }
+    targetDate.setHours(0, 0, 0, 0);
 
+    // 1. Calculate Cards (Only based on Date)
+    processPresentAndPending(targetDate);
+
+    // 2. Filter Table (Based on Date + Search Text)
+    const filteredLogs = allLogs.filter(row => {
+      const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
+      let isDateMatch = false;
+      
       if (!isNaN(rowDate.getTime())) {
         rowDate.setHours(0, 0, 0, 0);
-        if (rowDate.getTime() === today.getTime()) {
+        isDateMatch = (rowDate.getTime() === targetDate.getTime());
+      }
+      
+      const managerText = (row.Manager || row.managerName || "").toLowerCase();
+      const storeText = (row.Store || row.storeName || "").toLowerCase();
+      const isTextMatch = managerText.includes(searchText) || storeText.includes(searchText);
+
+      return isDateMatch && isTextMatch;
+    });
+
+    renderTable(filteredLogs);
+  }
+
+  function processPresentAndPending(targetDate) {
+    const presentManagers = [];
+    
+    allLogs.forEach(row => {
+      const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
+      if (!isNaN(rowDate.getTime())) {
+        rowDate.setHours(0, 0, 0, 0);
+        if (rowDate.getTime() === targetDate.getTime()) {
           const mName = (row.Manager || row.managerName || "").toLowerCase().trim();
           if (mName && !presentManagers.includes(mName)) {
             presentManagers.push(mName);
@@ -144,13 +188,13 @@
       }
     });
 
-    let allManagers = [];
+    let allManagersLists = [];
     if (typeof portalLists !== 'undefined' && portalLists.managers) {
-        allManagers = portalLists.managers.filter(m => m && m.trim() !== "");
+        allManagersLists = portalLists.managers.filter(m => m && m.trim() !== "");
     }
 
     const pendingManagers = [];
-    allManagers.forEach(manager => {
+    allManagersLists.forEach(manager => {
       if (!presentManagers.includes(manager.toLowerCase().trim())) {
         pendingManagers.push(manager);
       }
@@ -158,7 +202,7 @@
 
     const summaryHtml = `
       <div class="summary-card present-card">
-        <h3>✅ Present Today (${presentManagers.length})</h3>
+        <h3>✅ Present on Selected Date (${presentManagers.length})</h3>
         <p><strong>Managers:</strong> ${presentManagers.map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(", ") || "No one yet."}</p>
       </div>
       <div class="summary-card pending-card">
@@ -174,13 +218,12 @@
     tbody.innerHTML = "";
     
     if(logs.length === 0) {
-      document.getElementById('loadingState').innerText = "No attendance logs found in sheet.";
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 30px; color: #6c757d;">No attendance records found for this date/search.</td></tr>`;
       return;
     }
 
     logs.forEach(row => {
-      const rawDate = row.Timestamp || row.timestamp || row.Date || "";
-      const parsedDate = parseCustomDate(rawDate);
+      const parsedDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
       const formattedDate = !isNaN(parsedDate.getTime()) ? parsedDate.toLocaleString('en-IN') : "N/A";
       
       const manager = row.Manager || row.managerName || "N/A";
@@ -192,26 +235,24 @@
 
       const tr = document.createElement('tr');
       
-      // FIX 2: Handle Google Drive Links properly
       let photoHtml = `<span style="color:#999">No Image</span>`;
       if (rawImg) {
         if (rawImg.startsWith('data:image')) {
-            photoHtml = `<img src="${rawImg}" class="thumbnail-img" onclick="openModal('${rawImg}')" title="Click to view full size"/>`;
+            photoHtml = `<img src="${rawImg}" class="thumbnail-img" onclick="openModal('${rawImg}')"/>`;
         } else if (rawImg.includes('drive.google.com')) {
-            // Drive URL me se ID nikal kar official thumbnail API use karna
             let fileIdMatch = rawImg.match(/[-\w]{25,}/);
             if (fileIdMatch) {
                 let thumbUrl = `https://drive.google.com/thumbnail?id=${fileIdMatch[0]}&sz=w200-h200`;
-                photoHtml = `<img src="${thumbUrl}" class="thumbnail-img" onclick="openModal('${thumbUrl.replace('w200-h200', 'w800-h800')}')" title="Click to view full size"/>`;
+                photoHtml = `<img src="${thumbUrl}" class="thumbnail-img" onclick="openModal('${thumbUrl.replace('w200-h200', 'w800-h800')}')"/>`;
             } else {
-                photoHtml = `<a href="${rawImg}" target="_blank" style="color: blue;">View File</a>`;
+                photoHtml = `<a href="${rawImg}" target="_blank" style="color: blue;">View</a>`;
             }
         }
       }
 
       let mapHtml = `<span style="color:#999">No Location</span>`;
       if(lat && lng) {
-        mapHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" class="btn-map">📍 View on Map</a>`;
+        mapHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" class="btn-map">📍 Map</a>`;
       }
 
       tr.innerHTML = `
@@ -224,23 +265,6 @@
       `;
       tbody.appendChild(tr);
     });
-
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('attendanceTable').style.display = 'table';
-  }
-
-  function filterTable() {
-    const input = document.getElementById("searchBar").value.toLowerCase();
-    const rows = document.getElementById("tableBody").getElementsByTagName("tr");
-    for (let i = 0; i < rows.length; i++) {
-      const managerText = rows[i].getElementsByTagName("td")[1]?.textContent.toLowerCase() || "";
-      const storeText = rows[i].getElementsByTagName("td")[2]?.textContent.toLowerCase() || "";
-      if (managerText.includes(input) || storeText.includes(input)) {
-        rows[i].style.display = "";
-      } else {
-        rows[i].style.display = "none";
-      }
-    }
   }
 
   function openModal(imgSrc) {
