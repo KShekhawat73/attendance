@@ -65,7 +65,6 @@
       <option value="">-- Select Your Name --</option>
     </select>
 
-    <!-- ID added to store label to hide it easily -->
     <label id="storeLabel">Store Name</label>
     <select id="storeName" required disabled>
       <option value="">-- Loading Stores --</option>
@@ -112,7 +111,7 @@
   const managerLabel = document.getElementById('managerLabel');
   
   const storeSelect = document.getElementById('storeName');
-  const storeLabel = document.getElementById('storeLabel'); // Grab Store Label
+  const storeLabel = document.getElementById('storeLabel'); 
   
   let locationFetched = false;
   let photoCaptured = false;
@@ -140,31 +139,26 @@
         uniqueManagers = [...new Set(uniqueManagers)];
         uniqueManagers.sort((a, b) => a.localeCompare(undefined, { sensitivity: 'base', numeric: true }));
         
-        // 🛠️ Check Login Access Type
-        if (loggedInUser && userAccess !== 'all') {
-            // Normal user: Hide BOTH manager and store dropdowns/labels completely
+        // 🛠️ UPDATED LOGIC: Agar login access 'admin' NAHI hai (matlab normal user hai)
+        if (loggedInUser && userAccess !== 'admin') {
+            
+            // Hide Manager and Store dropdowns completely for normal user
             managerLabel.style.display = 'none';
             managerSelect.style.display = 'none';
+            storeLabel.style.display = 'none';  
+            storeSelect.style.display = 'none'; 
             
-            storeLabel.style.display = 'none';   // 🔥 Added Store Label Hide
-            storeSelect.style.display = 'none';  // 🔥 Added Store Select Hide
-            
+            // Auto-select logged in user
             managerSelect.innerHTML = `<option value="${loggedInUser}" selected>${loggedInUser}</option>`;
             updateStoresForManager(loggedInUser);
 
         } else {
-            // Admin user: Show full dropdowns
+            // Agar Admin kisi wajah se form page par aata hai, toh usko sab dikhega
             managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
             uniqueManagers.forEach(name => {
                 managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
             });
-
-            if (loggedInUser && userAccess === 'all') {
-                managerSelect.value = loggedInUser;
-                updateStoresForManager(loggedInUser);
-            } else {
-                storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
-            }
+            storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
         }
       }
     };
