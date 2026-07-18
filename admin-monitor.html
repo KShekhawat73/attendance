@@ -13,34 +13,21 @@
     .btn-refresh { padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s; }
     .btn-refresh:hover { background: #218838; }
     
-    /* 🪵 Motu Patlu Holding Board Design (Direct Image Intregration) */
-    .title-container { 
-      display: inline-flex; 
+    /* 🎨 Header Design with Motu Patlu on Left */
+    .title-wrapper { 
+      display: flex; 
       align-items: center; 
       justify-content: center; 
-      position: relative; 
-      margin-top: 15px;
-      margin-left: 60px; /* Space for Motu */
+      gap: 15px; /* Image aur Board ke beech ka space */
+      margin-top: 10px;
     }
     
-    .mascot { 
-      position: absolute;
-      z-index: 1; /* Board ke piche */
-      mix-blend-mode: multiply; /* Image ka white background gayab karne ki jadui trick */
-      top: 50%;
-      transition: transform 0.3s;
-    }
-    
-    .motu { 
-      height: 160px; 
-      left: -80px; /* Board ke left se bahar nikala */
-      transform: translateY(-50%) rotate(-5deg); /* Pakadne ka angle */
-    } 
-    
-    .patlu { 
-      height: 170px; 
-      right: -80px; /* Board ke right se bahar nikala */
-      transform: translateY(-50%) scaleX(-1) rotate(-5deg); /* Patlu ko board ki taraf ghuma diya */
+    .mascot-left { 
+      height: 140px; /* Image ki height set ki */
+      width: auto;
+      border-radius: 12px; /* Image ke corners gol kiye */
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* Image par shadow */
+      z-index: 2;
     }
     
     .sign-board {
@@ -109,16 +96,13 @@
 <div class="container">
   
   <div class="header-box">
-    <div class="title-container">
+    <div class="title-wrapper">
       
-      <!-- Motu Image (Pushed behind board, left side) -->
-      <img src="motu.jfif" alt="Motu" class="mascot motu">
+      <!-- New Motu Patlu Image on the Left side -->
+      <img src="Motu%20Patlu_1_2.jfif" alt="Motu Patlu" class="mascot-left">
       
       <!-- Center Board -->
       <div class="sign-board">Admin Monitor Dashboard</div>
-      
-      <!-- Patlu Image (Pushed behind board, right side, flipped) -->
-      <img src="patlu.jfif" alt="Patlu" class="mascot patlu">
       
     </div>
 
