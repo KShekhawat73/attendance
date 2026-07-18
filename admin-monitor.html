@@ -7,7 +7,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
     body { background-color: #f4f6f9; color: #333; padding: 20px; }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1200px; margin: 0 auto; padding-bottom: 50px; }
     
     .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
     h1 { color: #2c3e50; font-size: 1.8rem; }
@@ -29,12 +29,19 @@
     .date-picker { padding: 11px 15px; border: 1px solid #ced4da; border-radius: 8px; font-size: 1rem; cursor: pointer; color: #495057; font-weight: bold; background: white; }
     
     /* Table Styling */
-    .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto; }
+    .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto; margin-bottom: 30px; }
     table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; min-width: 800px; }
     th { background-color: #f8f9fa; color: #495057; padding: 15px; font-weight: 600; border-bottom: 2px solid #dee2e6; white-space: nowrap; }
     td { padding: 15px; border-bottom: 1px solid #dee2e6; vertical-align: middle; }
     tr:hover { background-color: #f8f9fa; }
     
+    /* Monthly Summary Specific */
+    .section-title { font-size: 1.5rem; color: #2c3e50; margin: 40px 0 15px 0; font-weight: bold; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
+    .badge-count { padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; }
+    .badge-good { background: #d4edda; color: #155724; }
+    .badge-zero { background: #f8d7da; color: #721c24; }
+    .summary-table th { background-color: #e9ecef; }
+
     /* Components */
     .btn-map { background: #e3f2fd; color: #0d6efd; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.85rem; display: inline-block; }
     .btn-map:hover { background: #0d6efd; color: white; }
@@ -62,12 +69,11 @@
 
   <!-- Search & Date Filter Section -->
   <div class="filter-box">
-    <input type="text" id="searchBar" class="search-input" placeholder="🔍 Search by Manager or Store Name..." onkeyup="updateDashboard()">
-    
-    <!-- Date Picker for Filtering -->
+    <input type="text" id="searchBar" class="search-input" placeholder="🔍 Search Manager (Shows Monthly Records)..." onkeyup="updateDashboard()">
     <input type="date" id="dateFilter" class="date-picker" title="Select date to filter records" onchange="updateDashboard()">
   </div>
 
+  <!-- Main Data Table -->
   <div class="table-container">
     <div id="loadingState" class="loading">⏳ Fetching check-ins... Please wait.</div>
     <table id="attendanceTable" style="display: none;">
@@ -84,6 +90,20 @@
       <tbody id="tableBody"></tbody>
     </table>
   </div>
+
+  <!-- Monthly Manager Summary Table -->
+  <h2 class="section-title">📊 Monthly Present Summary (<span id="summaryMonthName"></span>)</h2>
+  <div class="table-container">
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Manager Name</th>
+          <th>Total Days Present</th>
+        </tr>
+      </thead>
+      <tbody id="monthlySummaryBody"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Image View Modal -->
@@ -96,12 +116,10 @@
 <script src="lists.js"></script>
 
 <script>
-  // Sahi URL - Typo fixed
   const FETCH_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrzxW8xqoSQQ7OzSxSvZhJ/exec"; 
   
   let allLogs = []; 
 
-  // Format the DD/MM/YYYY dates from your sheet properly
   function parseCustomDate(dateStr) {
     if (!dateStr) return new Date("");
     let parts = dateStr.trim().split(" ");
@@ -121,7 +139,6 @@
       const response = await fetch(FETCH_URL);
       allLogs = await response.json(); 
       
-      // Auto-set today's date in calendar when the page loads
       const datePicker = document.getElementById('dateFilter');
       if (!datePicker.value) {
         const today = new Date();
@@ -131,21 +148,19 @@
         datePicker.value = `${yyyy}-${mm}-${dd}`;
       }
 
-      // Populate dashboard based on default today's date
       updateDashboard(); 
       
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('attendanceTable').style.display = 'table';
       
     } catch (error) {
-      document.getElementById('loadingState').innerText = "❌ Error: Could not load data. Ensure Apps Script is deployed properly.";
+      document.getElementById('loadingState').innerText = "❌ Error: Could not load data.";
     }
   }
 
-  // Master function to apply Date and Search filters together
   function updateDashboard() {
     const dateVal = document.getElementById('dateFilter').value;
-    const searchText = document.getElementById('searchBar').value.toLowerCase();
+    const searchText = document.getElementById('searchBar').value.toLowerCase().trim();
     
     let targetDate = new Date();
     if (dateVal) {
@@ -154,33 +169,36 @@
     }
     targetDate.setHours(0, 0, 0, 0);
 
-    // 1. Calculate Cards (Only based on Selected Date)
+    // 1. Update Top Cards
     processPresentAndPending(targetDate);
 
-    // 2. Filter Table (Based on Selected Date + Search Text)
+    // 2. Filter Main Table (Smart Logic)
     const filteredLogs = allLogs.filter(row => {
       const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
-      let isDateMatch = false;
-      
-      if (!isNaN(rowDate.getTime())) {
-        rowDate.setHours(0, 0, 0, 0);
-        isDateMatch = (rowDate.getTime() === targetDate.getTime());
-      }
+      if (isNaN(rowDate.getTime())) return false;
       
       const managerText = (row.Manager || row.managerName || "").toLowerCase();
       const storeText = (row.Store || row.storeName || "").toLowerCase();
       const isTextMatch = managerText.includes(searchText) || storeText.includes(searchText);
 
-      return isDateMatch && isTextMatch;
+      if (searchText.length > 0) {
+        // SMART LOGIC: If searching, match the whole MONTH and YEAR of selected date
+        const isMonthMatch = (rowDate.getMonth() === targetDate.getMonth() && rowDate.getFullYear() === targetDate.getFullYear());
+        return isMonthMatch && isTextMatch;
+      } else {
+        // EXACT LOGIC: If no search, match ONLY the exact selected DAY
+        rowDate.setHours(0, 0, 0, 0);
+        return (rowDate.getTime() === targetDate.getTime());
+      }
     });
-
     renderTable(filteredLogs);
+
+    // 3. Update Bottom Monthly Summary Table
+    renderMonthlySummary(targetDate);
   }
 
   function processPresentAndPending(targetDate) {
     const presentManagers = [];
-    
-    // Find who is present on the selected date
     allLogs.forEach(row => {
       const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
       if (!isNaN(rowDate.getTime())) {
@@ -194,13 +212,11 @@
       }
     });
 
-    // Get total managers from lists.js
     let allManagersLists = [];
     if (typeof portalLists !== 'undefined' && portalLists.managers) {
         allManagersLists = portalLists.managers.filter(m => m && m.trim() !== "");
     }
 
-    // Find who is missing (Pending)
     const pendingManagers = [];
     allManagersLists.forEach(manager => {
       if (!presentManagers.includes(manager.toLowerCase().trim())) {
@@ -208,9 +224,7 @@
       }
     });
 
-    // Display formatted date on card
     const displayDate = targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-
     const summaryHtml = `
       <div class="summary-card present-card">
         <h3>✅ Present on ${displayDate} (${presentManagers.length})</h3>
@@ -229,15 +243,14 @@
     tbody.innerHTML = "";
     
     if(logs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 30px; color: #6c757d; font-weight: bold;">No attendance records found for this date.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 30px; color: #6c757d; font-weight: bold;">No attendance records found for this criteria.</td></tr>`;
       return;
     }
 
-    // Sort logs so newest entry is at the top
     logs.sort((a, b) => {
       const dateA = parseCustomDate(a.Timestamp || a.timestamp || a.Date).getTime();
       const dateB = parseCustomDate(b.Timestamp || b.timestamp || b.Date).getTime();
-      return dateB - dateA;
+      return dateB - dateA; // Newest on top
     });
 
     logs.forEach(row => {
@@ -250,7 +263,6 @@
       const lat = row.latitude || row.Latitude || row.Lat;
       const lng = row.longitude || row.Longitude || row.Lng;
       
-      // Attempt to extract lat/lng if saved as "Lat: XX, Lng: XX" string in one column
       let finalLat = lat;
       let finalLng = lng;
       const latLongString = row['Lat-Long'] || row.Location || ""; 
@@ -260,7 +272,6 @@
       }
 
       const rawImg = row['Selfie Link'] || row.Photo || row.PhotoBase64 || row.photoBase64 || ""; 
-
       const tr = document.createElement('tr');
       
       let photoHtml = `<span style="color:#999">No Image</span>`;
@@ -273,7 +284,7 @@
                 let thumbUrl = `https://drive.google.com/thumbnail?id=${fileIdMatch[0]}&sz=w200-h200`;
                 photoHtml = `<img src="${thumbUrl}" class="thumbnail-img" onclick="openModal('${thumbUrl.replace('w200-h200', 'w800-h800')}')"/>`;
             } else {
-                photoHtml = `<a href="${rawImg}" target="_blank" style="color: blue; text-decoration: underline;">View</a>`;
+                photoHtml = `<a href="${rawImg}" target="_blank" style="color: blue;">View</a>`;
             }
         }
       }
@@ -290,6 +301,57 @@
         <td>${photoHtml}</td>
         <td>${mapHtml}</td>
         <td style="color: #6c757d;">${remarks}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderMonthlySummary(targetDate) {
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    document.getElementById('summaryMonthName').innerText = `${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
+
+    const managerCounts = {};
+    
+    // Default load all managers from lists.js with 0 count
+    if (typeof portalLists !== 'undefined' && portalLists.managers) {
+        portalLists.managers.forEach(mgr => {
+            if (mgr && mgr.trim() !== "") {
+                managerCounts[mgr.trim().toLowerCase()] = new Set();
+            }
+        });
+    }
+
+    // Count unique days they were present in the selected month
+    allLogs.forEach(row => {
+      const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
+      if (!isNaN(rowDate.getTime())) {
+        if (rowDate.getMonth() === targetDate.getMonth() && rowDate.getFullYear() === targetDate.getFullYear()) {
+           const mgr = (row.Manager || row.managerName || "").trim().toLowerCase();
+           if (mgr) {
+               if (!managerCounts[mgr]) managerCounts[mgr] = new Set();
+               // Use date string to avoid double counting multiple check-ins on the same day
+               managerCounts[mgr].add(rowDate.toDateString()); 
+           }
+        }
+      }
+    });
+
+    const tbody = document.getElementById('monthlySummaryBody');
+    tbody.innerHTML = "";
+
+    // Sort alphabetically
+    const sortedManagers = Object.keys(managerCounts).sort();
+
+    sortedManagers.forEach(mgr => {
+      const count = managerCounts[mgr].size;
+      const displayName = mgr.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      
+      const badgeClass = count > 0 ? 'badge-good' : 'badge-zero';
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${displayName}</strong></td>
+        <td><span class="badge-count ${badgeClass}">${count} Days</span></td>
       `;
       tbody.appendChild(tr);
     });
