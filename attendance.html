@@ -10,7 +10,12 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #333; padding: 20px; width: 100vw; min-height: 100vh; display: block; overflow-x: hidden; }
-    .container { width: 100%; max-width: 450px; margin: 30px auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(0); opacity: 0; animation: fadeInUp 0.6s ease forwards; }
+    
+    /* Back to Dashboard Button Style */
+    .back-home-btn { display: inline-block; width: 100%; max-width: 450px; margin: 0 auto 10px auto; padding: 10px; background: #6c757d; color: white; text-align: center; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .back-home-btn:hover { background: #5a6268; }
+
+    .container { width: 100%; max-width: 450px; margin: 10px auto 30px auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(0); opacity: 0; animation: fadeInUp 0.6s ease forwards; }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     h2 { text-align: center; color: #007bff; font-size: 1.6rem; margin-bottom: 20px; font-weight: 700; position: relative; }
     label { font-weight: 600; display: block; margin-top: 18px; font-size: 0.9rem; color: #495057; }
@@ -41,6 +46,11 @@
   </style>
 </head>
 <body>
+
+<!-- 🏠 Back to Main Dashboard Navigation -->
+<div style="width: 100%; max-width: 450px; margin: 0 auto;">
+  <a href="index.html" class="back-home-btn">🏠 Back to Dashboard</a>
+</div>
 
 <div class="container" id="mainContainer">
   <h2>Store Check-In</h2>
@@ -122,10 +132,8 @@
   let rawMappings = [];
   let stream = null;
 
-  // 🔥 100% DYNAMIC + CACHE-FIX: Seedha Google Sheet se hamesha fresh data lane ke liye
   async function loadListsDynamic() {
     try {
-      // '&t=' timestamp lagane se browser purana data (cache) kabhi read nahi karega
       const response = await fetch(WEB_APP_URL + "?action=getLists&t=" + new Date().getTime());
       const mappings = await response.json();
       
