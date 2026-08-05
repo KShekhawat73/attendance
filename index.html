@@ -118,10 +118,11 @@
   let rawMappings = [];
   let stream = null;
 
-  // 🔥 100% DYNAMIC: Seedha Google Sheet se live Store & Manager list mangwane ke liye
+  // 🔥 100% DYNAMIC + CACHE-FIX: Seedha Google Sheet se hamesha fresh data lane ke liye
   async function loadListsDynamic() {
     try {
-      const response = await fetch(WEB_APP_URL + "?action=getLists");
+      // '&t=' timestamp lagane se browser purana data (cache) kabhi read nahi karega
+      const response = await fetch(WEB_APP_URL + "?action=getLists&t=" + new Date().getTime());
       const mappings = await response.json();
       
       rawMappings = mappings; 
