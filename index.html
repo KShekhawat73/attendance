@@ -62,12 +62,12 @@
     
     <label id="managerLabel">Manager Name</label>
     <select id="managerName" required>
-      <option value="">-- Select Your Name --</option>
+      <option value="">-- Loading Managers... --</option>
     </select>
 
     <label id="storeLabel">Store Name</label>
     <select id="storeName" required disabled>
-      <option value="">-- Loading Stores --</option>
+      <option value="">-- Select Manager First --</option>
     </select>
 
     <label>Remarks</label>
@@ -76,7 +76,6 @@
     <input type="hidden" id="latitude" value="">
     <input type="hidden" id="longitude" value="">
 
-    <!-- Default disabled button -->
     <button type="submit" id="submitBtn" disabled>Checking details...</button>
   </form>
 </div>
@@ -119,56 +118,44 @@
   let rawMappings = [];
   let stream = null;
 
-  function loadListsDynamic() {
-    const script = document.createElement('script');
-    script.src = "lists.js?v=" + new Date().getTime();
-    script.onload = () => {
-      if (typeof portalLists !== 'undefined') {
-        const storesArr = portalLists.stores || [];
-        const managersArr = portalLists.managers || [];
-        const totalRows = Math.max(storesArr.length, managersArr.length);
-        
-        for(let i = 0; i < totalRows; i++) {
-          // 🛠️ Optimization: Trim multiple spaces systematically
-          let sVal = storesArr[i] ? storesArr[i].toString().trim() : "";
-          let mVal = managersArr[i] ? managersArr[i].toString().trim() : "";
-          if (sVal || mVal) {
-            rawMappings.push({ store: sVal, manager: mVal });
-          }
-        }
+  // 🔥 100% DYNAMIC: Seedha Google Sheet se live Store & Manager list mangwane ke liye
+  async function loadListsDynamic() {
+    try {
+      const response = await fetch(WEB_APP_URL + "?action=getLists");
+      const mappings = await response.json();
+      
+      rawMappings = mappings; 
 
-        let uniqueManagers = rawMappings.map(item => item.manager).filter(name => name && name.length > 0);
-        uniqueManagers = [...new Set(uniqueManagers)];
-        uniqueManagers.sort((a, b) => a.localeCompare(undefined, { sensitivity: 'base', numeric: true }));
+      let uniqueManagers = rawMappings.map(item => item.manager).filter(name => name && name.length > 0);
+      uniqueManagers = [...new Set(uniqueManagers)];
+      uniqueManagers.sort((a, b) => a.localeCompare(undefined, { sensitivity: 'base', numeric: true }));
+      
+      if (loggedInUser && userAccess !== 'all') {
+        managerLabel.style.display = 'none';
+        managerSelect.style.display = 'none';
+        storeLabel.style.display = 'none';  
+        storeSelect.style.display = 'none'; 
         
-        if (loggedInUser && userAccess !== 'all') {
-            managerLabel.style.display = 'none';
-            managerSelect.style.display = 'none';
-            storeLabel.style.display = 'none';  
-            storeSelect.style.display = 'none'; 
-            
-            // Clean the username parameter before placing it
-            const cleanUser = loggedInUser.trim();
-            managerSelect.innerHTML = `<option value="${cleanUser}" selected>${cleanUser}</option>`;
-            updateStoresForManager(cleanUser);
+        const cleanUser = loggedInUser.trim();
+        managerSelect.innerHTML = `<option value="${cleanUser}" selected>${cleanUser}</option>`;
+        updateStoresForManager(cleanUser);
+      } else {
+        managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
+        uniqueManagers.forEach(name => {
+          managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        });
 
+        if (loggedInUser && userAccess === 'all') {
+          managerSelect.value = loggedInUser.trim();
+          updateStoresForManager(loggedInUser.trim());
         } else {
-            managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
-            uniqueManagers.forEach(name => {
-                managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
-            });
-
-            if (loggedInUser && userAccess === 'all') {
-                managerSelect.value = loggedInUser.trim();
-                updateStoresForManager(loggedInUser.trim());
-            } else {
-                storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
-            }
+          storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
         }
       }
       checkFormReady();
-    };
-    document.body.appendChild(script);
+    } catch (error) {
+      alert("Live store list load nahi ho payi. Kripya page refresh karein.");
+    }
   }
   window.addEventListener('DOMContentLoaded', loadListsDynamic);
 
@@ -180,7 +167,6 @@
       return;
     }
 
-    // 🛠️ Optimization: Strict lowercase and trim matching to avoid errors
     const cleanSelectedManager = selectedManager.toLowerCase().trim();
     const matchedStores = rawMappings
       .filter(item => item.manager.toLowerCase().trim() === cleanSelectedManager)
@@ -195,11 +181,8 @@
       });
       storeSelect.disabled = false;
     } else {
-      // 🛠️ Optimization: Fallback Fail-Safe. If store is missing, unhide and show warning.
       storeSelect.innerHTML = '<option value="">Contact Admin - No Store Assigned</option>';
       storeSelect.disabled = true;
-      
-      // Unhide to let user see the actual problem
       storeLabel.style.display = 'block';
       storeSelect.style.display = 'block';
     }
@@ -264,10 +247,8 @@
     checkFormReady();
   });
 
-  // 🛠️ Optimization: Smart Error Checking on Submit Button
   function checkFormReady() {
     let missing = [];
-    
     if (!locationFetched) missing.push("Location");
     if (!photoCaptured) missing.push("Selfie");
     if (!managerSelect.value) missing.push("Manager Name");
