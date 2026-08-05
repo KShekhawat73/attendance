@@ -1,1 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Store Attendance Portal</title>
+  
+  <!-- 🔥 PWA & APK Manifest Link -->
+  <link rel="manifest" href="manifest.json">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #333; padding: 20px; width: 100vw; min-height: 100vh; display: block; overflow-x: hidden; }
+    .container { width: 100%; max-width: 450px; margin: 30px auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(0); opacity: 0; animation: fadeInUp 0.6s ease forwards; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    h2 { text-align: center; color: #007bff; font-size: 1.6rem; margin-bottom: 20px; font-weight: 700; position: relative; }
+    label { font-weight: 600; display: block; margin-top: 18px; font-size: 0.9rem; color: #495057; }
+    input, select, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 1rem; background-color: #fff; }
+    
+    button { width: 100%; padding: 14px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    button:disabled { background-color: #e9ecef !important; color: #dc3545 !important; cursor: not-allowed; border: 1px solid #dc3545; }
+    
+    #locationBtn { background: linear-gradient(45deg, #ffc107, #ff9800); }
+    #cameraBtn { background: linear-gradient(45deg, #17a2b8, #117a8b); margin-top: 15px; }
+    #captureBtn { background: #007bff; padding: 10px; margin-top: 10px; }
+    #retakeBtn { background: #6c757d; padding: 10px; margin-top: 10px; }
+    #submitBtn { background: linear-gradient(45deg, #28a745, #218838); margin-top: 25px; }
+    
+    .status { text-align: center; font-weight: bold; margin-top: 15px; font-size: 0.95rem; color: #dc3545; padding: 10px; border-radius: 6px; background: rgba(220, 53, 69, 0.1); }
+    
+    .camera-box { display: none; margin-top: 15px; text-align: center; border: 2px dashed #dee2e6; padding: 10px; border-radius: 8px; }
+    #videoElement { width: 100%; border-radius: 8px; background: #000; }
+    #photoResult { display: none; margin-top: 15px; text-align: center; }
+    #capturedImage { width: 100%; border-radius: 8px; border: 2px solid #28a745; }
+    
+    .section-title { font-size: 1.1rem; color: #343a40; margin-top: 25px; margin-bottom: -5px; font-weight: 700; border-bottom: 2px solid #f1f3f5; padding-bottom: 5px; }
+    #successOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; z-index: 9999; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; }
+    .success-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 400px; }
+    .success-icon-circle { width: 80px; height: 80px; background: #e8f5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #28a745; font-size: 3rem; }
+    .success-title { color: #28a745; font-size: 1.8rem; font-weight: bold; margin-bottom: 12px; }
+    .success-card p { color: #6c757d; font-size: 1rem; }
+  </style>
+</head>
+<body>
 
+<div class="container" id="mainContainer">
+  <h2>Store Check-In</h2>
+  
+  <button type="button" id="locationBtn">📍 Step 1: Verify Live GPS</button>
+  <div id="status" class="status">⚠️ Awaiting Location.</div>
+
+  <button type="button" id="cameraBtn">📷 Step 2: Take Selfie</button>
+  
+  <div id="cameraBox" class="camera-box">
+    <video id="videoElement" autoplay playsinline></video>
+    <button type="button" id="captureBtn">📸 Click Photo</button>
+  </div>
+
+  <div id="photoResult">
+    <img id="capturedImage" src="" alt="Captured Selfie" />
+    <button type="button" id="retakeBtn">🔄 Retake Photo</button>
+    <input type="hidden" id="photoData" value="">
+  </div>
+
+  <div class="section-title">📝 Step 3: Details</div>
+  <form id="attendanceForm">
+    
+    <label id="managerLabel">Manager Name</label>
+    <select id="managerName" required>
+      <option value="">-- Loading Managers... --</option>
+    </select>
+
+    <label id="storeLabel">Store Name</label>
+    <select id="storeName" required disabled>
+      <option value="">-- Select Manager First --</option>
+    </select>
+
+    <label>Remarks</label>
+    <textarea id="remarks" rows="2" placeholder="Any update or remarks (Optional)"></textarea>
+
+    <input type="hidden" id="latitude" value="">
+    <input type="hidden" id="longitude" value="">
+
+    <button type="submit" id="submitBtn" disabled>Checking details...</button>
+  </form>
+</div>
+
+<div id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon-circle">✓</div>
+    <div class="success-title">Success!</div>
+    <p>Your attendance, selfie, and GPS have been marked.</p>
+  </div>
+</div>
+
+<script>
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrzxW8xqoSQQ7OzSxSvZhJ/exec";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const loggedInUser = urlParams.get('user'); 
+  const userAccess = urlParams.get('access'); 
+
+  const locationBtn = document.getElementById('locationBtn');
+  const statusDiv = document.getElementById('status');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const cameraBox = document.getElementById('cameraBox');
+  const videoElement = document.getElementById('videoElement');
+  const captureBtn = document.getElementById('captureBtn');
+  const photoResult = document.getElementById('photoResult');
+  const capturedImage = document.getElementById('capturedImage');
+  const photoData = document.getElementById('photoData');
+  const retakeBtn = document.getElementById('retakeBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  
+  const managerSelect = document.getElementById('managerName');
+  const managerLabel = document.getElementById('managerLabel');
+  
+  const storeSelect = document.getElementById('storeName');
+  const storeLabel = document.getElementById('storeLabel'); 
+  
+  let locationFetched = false;
+  let photoCaptured = false;
+  let rawMappings = [];
+  let stream = null;
+
+  // 🔥 100% DYNAMIC + CACHE-FIX: Seedha Google Sheet se hamesha fresh data lane ke liye
+  async function loadListsDynamic() {
+    try {
+      // '&t=' timestamp lagane se browser purana data (cache) kabhi read nahi karega
+      const response = await fetch(WEB_APP_URL + "?action=getLists&t=" + new Date().getTime());
+      const mappings = await response.json();
+      
+      rawMappings = mappings; 
+
+      let uniqueManagers = rawMappings.map(item => item.manager).filter(name => name && name.length > 0);
+      uniqueManagers = [...new Set(uniqueManagers)];
+      uniqueManagers.sort((a, b) => a.localeCompare(undefined, { sensitivity: 'base', numeric: true }));
+      
+      if (loggedInUser && userAccess !== 'all') {
+        managerLabel.style.display = 'none';
+        managerSelect.style.display = 'none';
+        storeLabel.style.display = 'none';  
+        storeSelect.style.display = 'none'; 
+        
+        const cleanUser = loggedInUser.trim();
+        managerSelect.innerHTML = `<option value="${cleanUser}" selected>${cleanUser}</option>`;
+        updateStoresForManager(cleanUser);
+      } else {
+        managerSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
+        uniqueManagers.forEach(name => {
+          managerSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+
+        if (loggedInUser && userAccess === 'all') {
+          managerSelect.value = loggedInUser.trim();
+          updateStoresForManager(loggedInUser.trim());
+        } else {
+          storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
+        }
+      }
+      checkFormReady();
+    } catch (error) {
+      alert("Live store list load nahi ho payi. Kripya page refresh karein.");
+    }
+  }
+  window.addEventListener('DOMContentLoaded', loadListsDynamic);
+
+  function updateStoresForManager(selectedManager) {
+    if (!selectedManager) {
+      storeSelect.innerHTML = '<option value="">-- Select Manager First --</option>';
+      storeSelect.disabled = true;
+      checkFormReady();
+      return;
+    }
+
+    const cleanSelectedManager = selectedManager.toLowerCase().trim();
+    const matchedStores = rawMappings
+      .filter(item => item.manager.toLowerCase().trim() === cleanSelectedManager)
+      .map(item => item.store)
+      .filter(store => store && store.length > 0);
+
+    storeSelect.innerHTML = '';
+    
+    if (matchedStores.length > 0) {
+      matchedStores.forEach(store => {
+        storeSelect.innerHTML += `<option value="${store}">${store}</option>`;
+      });
+      storeSelect.disabled = false;
+    } else {
+      storeSelect.innerHTML = '<option value="">Contact Admin - No Store Assigned</option>';
+      storeSelect.disabled = true;
+      storeLabel.style.display = 'block';
+      storeSelect.style.display = 'block';
+    }
+    checkFormReady();
+  }
+
+  managerSelect.addEventListener('change', () => {
+    updateStoresForManager(managerSelect.value);
+  });
+
+  locationBtn.addEventListener('click', () => {
+    statusDiv.innerText = "🔄 Fetching GPS... Please wait.";
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          document.getElementById('latitude').value = position.coords.latitude;
+          document.getElementById('longitude').value = position.coords.longitude;
+          locationFetched = true;
+          statusDiv.style.display = "none";
+          locationBtn.style.background = "linear-gradient(45deg, #28a745, #218838)";
+          locationBtn.innerText = "✅ Step 1: Location Verified";
+          checkFormReady();
+        },
+        (err) => { statusDiv.innerText = "❌ GPS Error! Allow Location."; },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+  });
+
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      videoElement.srcObject = stream;
+      cameraBtn.style.display = 'none';
+      photoResult.style.display = 'none';
+      cameraBox.style.display = 'block';
+    } catch (err) { alert("Camera access denied or unavailable."); }
+  }
+
+  function stopCamera() { if (stream) { stream.getTracks().forEach(track => track.stop()); } }
+
+  cameraBtn.addEventListener('click', startCamera);
+  retakeBtn.addEventListener('click', () => {
+    photoCaptured = false;
+    photoData.value = "";
+    checkFormReady();
+    startCamera();
+  });
+
+  captureBtn.addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    canvas.getContext('2d').drawImage(videoElement, 0, 0);
+    const base64Image = canvas.toDataURL('image/jpeg', 0.6); 
+    capturedImage.src = base64Image;
+    photoData.value = base64Image;
+    photoCaptured = true;
+    stopCamera();
+    cameraBox.style.display = 'none';
+    photoResult.style.display = 'block';
+    checkFormReady();
+  });
+
+  function checkFormReady() {
+    let missing = [];
+    if (!locationFetched) missing.push("Location");
+    if (!photoCaptured) missing.push("Selfie");
+    if (!managerSelect.value) missing.push("Manager Name");
+    if (!storeSelect.value) missing.push("Store Assign");
+
+    if (missing.length === 0) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit Attendance 🚀";
+      submitBtn.style.background = "linear-gradient(45deg, #28a745, #218838)";
+      submitBtn.style.color = "white";
+      submitBtn.style.border = "none";
+    } else {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Missing: " + missing.join(", ");
+    }
+  }
+
+  document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting Data... ⏳";
+
+    const formData = new URLSearchParams();
+    formData.append('managerName', managerSelect.value);
+    formData.append('storeName', storeSelect.value);
+    formData.append('remarks', document.getElementById('remarks').value);
+    formData.append('latitude', document.getElementById('latitude').value);
+    formData.append('longitude', document.getElementById('longitude').value);
+    formData.append('photoBase64', photoData.value); 
+
+    fetch(WEB_APP_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" }, 
+      body: formData.toString()
+    }).then(() => {
+      document.getElementById('mainContainer').style.display = 'none';
+      document.getElementById('successOverlay').style.display = 'flex';
+    }).catch(err => {
+      alert("Submission Error: " + err);
+      submitBtn.disabled = false;
+    });
+  });
+</script>
+
+</body>
+</html>
