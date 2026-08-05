@@ -29,7 +29,6 @@
       color: #fff;
       font-size: 2.2rem;
       font-weight: 900;
-      /* Heavy shadow taaki board ekdum 3D aage nikla hua lage */
       box-shadow: -5px 8px 15px rgba(0,0,0,0.4), 5px 8px 15px rgba(0,0,0,0.4), inset 0px 2px 5px rgba(255,255,255,0.2);
       text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
       position: relative;
@@ -137,12 +136,11 @@
   <img class="modal-content" id="modalImg">
 </div>
 
-<script src="lists.js"></script>
-
 <script>
   const FETCH_URL = "https://script.google.com/macros/s/AKfycbx_WoI9VdUBm5VGinxmnfu7hTHR5gHp3jP24P0vVH4VOUFrzxW8xqoSQQ7OzSxSvZhJ/exec"; 
   
   let allLogs = []; 
+  let liveManagerStoreMappings = []; // 🔥 Dynamic list store karne ke liye
 
   function parseCustomDate(dateStr) {
     if (!dateStr) return new Date("");
@@ -160,6 +158,11 @@
     document.getElementById('attendanceTable').style.display = 'none';
     
     try {
+      // 1. Live Store & Manager list fetch karo Google Sheet se
+      const listRes = await fetch(FETCH_URL + "?action=getLists");
+      liveManagerStoreMappings = await listRes.json();
+
+      // 2. Attendance logs fetch karo
       const response = await fetch(FETCH_URL);
       allLogs = await response.json(); 
       
@@ -230,10 +233,11 @@
       }
     });
 
-    let allManagersLists = [];
-    if (typeof portalLists !== 'undefined' && portalLists.managers) {
-        allManagersLists = portalLists.managers.filter(m => m && m.trim() !== "");
-    }
+    // Dynamic Google Sheet data se sabhi unique managers ki list nikalna
+    let allManagersLists = liveManagerStoreMappings
+      .map(item => item.manager ? item.manager.trim() : "")
+      .filter(m => m !== "");
+    allManagersLists = [...new Set(allManagersLists)];
 
     const pendingManagers = [];
     allManagersLists.forEach(manager => {
@@ -331,19 +335,20 @@
     const managerCounts = {};
     const managerStores = {}; 
     
-    if (typeof portalLists !== 'undefined' && portalLists.managers && portalLists.stores) {
-        const maxLen = Math.max(portalLists.managers.length, portalLists.stores.length);
-        for(let i=0; i<maxLen; i++) {
-            let mgr = portalLists.managers[i] ? portalLists.managers[i].trim() : "";
-            let store = portalLists.stores[i] ? portalLists.stores[i].trim() : "No Store";
-            if (mgr) {
-                let mgrLower = mgr.toLowerCase();
-                managerCounts[mgrLower] = new Set();
-                managerStores[mgrLower] = store;
-            }
+    // Google Sheet ke dynamic data se base table tyar karna
+    liveManagerStoreMappings.forEach(item => {
+      let mgr = item.manager ? item.manager.trim() : "";
+      let store = item.store ? item.store.trim() : "No Store";
+      if (mgr) {
+        let mgrLower = mgr.toLowerCase();
+        if (!managerCounts[mgrLower]) {
+          managerCounts[mgrLower] = new Set();
+          managerStores[mgrLower] = store;
         }
-    }
+      }
+    });
 
+    // Attendance logs read karke present days ginna (agar koi naya naam logs me aaye to load karega)
     allLogs.forEach(row => {
       const rowDate = parseCustomDate(row.Timestamp || row.timestamp || row.Date);
       if (!isNaN(rowDate.getTime())) {
@@ -353,7 +358,7 @@
                if (!managerCounts[mgr]) managerCounts[mgr] = new Set();
                managerCounts[mgr].add(rowDate.toDateString()); 
                
-               if(!managerStores[mgr] && (row.Store || row.storeName)) {
+               if (!managerStores[mgr] && (row.Store || row.storeName)) {
                    managerStores[mgr] = (row.Store || row.storeName).trim();
                }
            }
@@ -383,7 +388,6 @@
     summaryArray.forEach(item => {
       const displayName = item.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       const displayStore = item.store.toUpperCase();
-      
       const badgeClass = item.count > 0 ? 'badge-good' : 'badge-zero';
       
       const tr = document.createElement('tr');
